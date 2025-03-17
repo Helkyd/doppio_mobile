@@ -1,6 +1,7 @@
 import React, { useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { HomeScreen } from "../../screens/home.screen";
+import { HomeFacturas } from "../../screens/home.invoices";
 import { DetailsScreen } from "../../screens/details.screen";
 import { BottomNavigation, BottomNavigationTab } from "@ui-kitten/components";
 
@@ -17,6 +18,7 @@ const BottomTabBar = ({ navigation, state }) => (
     onSelect={(index) => navigation.navigate(state.routeNames[index])}
   >
     <BottomNavigationTab title="Home" />
+    <BottomNavigationTab title="Facturas"  />
     <BottomNavigationTab title="Todos" />
     <BottomNavigationTab title="User" />
   </BottomNavigation>
@@ -25,6 +27,7 @@ const BottomTabBar = ({ navigation, state }) => (
 const TabNavigator = () => (
   <Navigator tabBar={(props) => <BottomTabBar {...props} />}>
     <Screen name="Home" component={HomeScreen} />
+    <Screen name="Facturas" component={HomeFacturas} />
     <Screen name="ToDo" component={TodoScreen} />
     <Screen name="Details" component={DetailsScreen} />
   </Navigator>
