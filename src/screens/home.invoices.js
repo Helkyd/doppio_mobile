@@ -5,8 +5,12 @@ import Form from "../components/form.component";
 import { useFrappe } from "../provider/backend";
 import styled from "styled-components/native";
 import { FrappeApp } from "frappe-js-sdk";
+import { FlashList } from "@shopify/flash-list";
 
 import { format } from "date-fns";
+
+import * as Linking from 'expo-linking';
+import { BASE_URI } from "../data/constants";
 
 
 const HomeScreenContainer = styled(Layout)`
@@ -14,6 +18,24 @@ const HomeScreenContainer = styled(Layout)`
  padding-left:30px;
  padding-right: 30px;
 `
+
+
+const TodoItem = ({ item }) => {
+  const formatarMoeda = new Intl.NumberFormat();
+  return (
+    <Card key={item.name} style={{ width: "100%", marginBottom: 20 }}>
+      <Text style={{ fontSize: 10 }}>{format(item.posting_date,"dd-MM-yyyy")} - {item.doc_agt} - {item.customer}</Text>
+      <Text category="h6" style={{ fontSize: 12, color: 'red' }}>{formatarMoeda.format(item.outstanding_amount)}</Text>
+
+      <Button onPress={() => {
+        console.log('pressed');
+        Linking.openURL(`${BASE_URI}/app/sales-invoice/${item.name}`)
+      }} appearance="ghost"> Abrir</Button>
+      <Layout style={{ marginVertical: 2 }}></Layout>      
+    </Card>
+  );
+};
+
 
 export const HomeFacturas = () => {
   <Layout
@@ -26,7 +48,7 @@ export const HomeFacturas = () => {
   const [numerodeFacturas, setNumerodeFacturas] = React.useState(null);
   const [listaFacturas, setListaFacturas] = React.useState([]);
   const dateHoje = new Date();
-  const formatarMoeda = new Intl.NumberFormat();
+  //const formatarMoeda = new Intl.NumberFormat();
 
   useEffect(() => {
     db.getCount('Sales Invoice').then((count) => {
@@ -39,7 +61,7 @@ export const HomeFacturas = () => {
       fields: ["name","doc_agt","posting_date","customer","outstanding_amount","rounded_total","status"],
       filters: [['posting_date','<=', `${dateHoje.getFullYear()}-${dateHoje.getMonth()+1}-${dateHoje.getDate()}`],['status','!=','Paid'],['doc_agt','!=',""],['naming_series','like','FT%']],
       limit_start: 5,
-      limit: 10,
+      limit: 20,
       orderBy: {
         field: "posting_date",
         order: 'desc',
@@ -63,20 +85,22 @@ export const HomeFacturas = () => {
           <Text >Total de Facturas: {numerodeFacturas} </Text>
         </Card>
 
-        <Layout style={{ marginVertical: 10 }}></Layout>
+        <Layout style={{ marginVertical: 5 }}></Layout>
         <Card>
           <Text category="h6"> Facturas por Pagar</Text>
-          <Layout style={{ marginVertical: 10 }}></Layout>
-          {listaFacturas.map((stream) => {
-            return (
-              <Layout key={stream.name} style={{ width: "100%", marginBottom: 10 }}>
-                <Text style={{ fontSize: 10 }}>{format(stream.posting_date,"dd-MM-yyyy")} - {stream.doc_agt} - {stream.customer}</Text>
-                <Text category="h6" style={{ fontSize: 12 }}>{formatarMoeda.format(stream.outstanding_amount)}</Text>
-                <Layout style={{ marginVertical: 5 }}></Layout>
-              </Layout>
+          <Layout style={{ marginVertical: 5 }}></Layout>
+          <Layout style={{ width: "100%", height: "100%" }}>
+            <FlashList
+              data={listaFacturas}
+              renderItem={TodoItem}
+              estimatedItemSize={100}
+              //onRefresh={fetchTodos}
+              //refreshing={loadingTodos}
+            />
 
-            )
-          })}
+          </Layout>
+
+
         </Card>
 
 
