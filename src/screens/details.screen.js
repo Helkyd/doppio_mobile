@@ -25,26 +25,35 @@ export const DetailsScreen = () => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  console.log('USERSSSS ', userInfo);
+  console.log(userInfo.picture != null);
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
+      
       <Layout
         style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
       >
-        <Layout style={{ marginVertical: 20, position: "relative" }}>
-          <ProfileImage source={{
-            uri: userInfo.picture, headers: {
-              Authorization: `Bearer ${accessToken}` // for handling private images
-            }
-          }} contentFit="cover" />
+        {userInfo.picture ? (
+          <Layout style={{ marginVertical: 20, position: "relative" }}>
+            <ProfileImage source={{
+              uri: userInfo.picture, headers: {
+                Authorization: `Bearer ${accessToken}` // for handling private images
+              }
+            }} contentFit="cover" />
 
-          {loading && <CircularProgressBar style={{ position: "absolute", top: 30, left: 30, backgroundColor: "white" }} progress={uploadProgress} />}
-        </Layout>
+            {loading && <CircularProgressBar style={{ position: "absolute", top: 30, left: 30, backgroundColor: "white" }} progress={uploadProgress} />}
+
+          </Layout>
+        ) : (
+          <Text>No Profile picture available </Text>
+        )}
 
         <Button appearance="ghost" onPress={async () => {
           // implement change profile pic
           // let the user pick image from gallery
           let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            mediaTypes: ImagePicker.mediaTypes, // ImagePicker.MediaTypeOptions.All,
             allowsEditing: true,
             aspect: [1, 1],
             quality: 1,
@@ -73,7 +82,7 @@ export const DetailsScreen = () => {
                 fieldname: "user_image"
               })
             } catch (error) {
-              console.log(error)
+              console.error(error)
               setLoading(false)
             }
 

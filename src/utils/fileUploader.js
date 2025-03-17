@@ -33,7 +33,9 @@ export default async function uploadFile(fileUri, fileName, fileType, options) {
             formData.append('fieldname', options.fieldname);
         }
     }
-
+    console.log('AXIOS POST...')
+    console.log('formdata ', formData)
+    console.log('baseURI ', `${BASE_URI}`)
     axios.post(`${BASE_URI}/api/method/upload_file`, formData, {
         headers: {
             Authorization: `Bearer ${options?.accessToken}`,
@@ -51,6 +53,7 @@ export default async function uploadFile(fileUri, fileName, fileType, options) {
             options.onUploadComplete(res.data);
     }).catch((error) => {
         console.log("Error uploading file!")
+        console.error(error)
         throw {
             httpStatus: error.response.status,
             httpStatusText: error.response.statusText,
