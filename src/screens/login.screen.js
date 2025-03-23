@@ -3,8 +3,15 @@ import { AuthContext } from "../provider/auth";
 
 import { Layout, Button } from "@ui-kitten/components";
 
+import * as Linking from "expo-linking";
+
+
 const LoginScreen = () => {
   const { isAuthenticated, promptAsync, request } = useContext(AuthContext);
+
+  console.log('LINNNKKK URL');
+  console.log(Linking.createURL() + '/--/');
+  console.log(process.env);
 
   return (
     <Layout

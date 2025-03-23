@@ -1,0 +1,12 @@
+[
+    {
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "dev.metagest.changemakers",
+            "sha256_cert_fingerprints": [
+                "DE:3B:4F:C4:03:7B:2E:05:2B:52:98:14:BC:14:EC:8A:CB:C5:43:6C:1B:65:08:0F:E0:C5:96:D9:11:FA:50:8C"
+            ]
+        }
+    }
+]

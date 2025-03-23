@@ -20,7 +20,7 @@ const HomeScreenContainer = styled(Layout)`
 `
 
 
-const TodoItem = ({ item }) => {
+const UnpaidFacturas = ({ item }) => {
   const formatarMoeda = new Intl.NumberFormat();
   return (
     <Card key={item.name} style={{ width: "100%", marginBottom: 20 }}>
@@ -92,7 +92,7 @@ export const HomeFacturas = () => {
           <Layout style={{ width: "100%", height: "100%" }}>
             <FlashList
               data={listaFacturas}
-              renderItem={TodoItem}
+              renderItem={UnpaidFacturas}
               estimatedItemSize={100}
               //onRefresh={fetchTodos}
               //refreshing={loadingTodos}

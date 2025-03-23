@@ -10,6 +10,10 @@ import { AuthNavigator } from "./auth.navigator";
 import { AuthContext } from "../../provider/auth";
 import { TodoScreen } from "../../screens/todo.screen";
 
+//Customer
+import { HomeCustomer } from "../../screens/home.customer";
+
+
 const { Navigator, Screen } = createBottomTabNavigator();
 
 const BottomTabBar = ({ navigation, state }) => (
@@ -18,7 +22,8 @@ const BottomTabBar = ({ navigation, state }) => (
     onSelect={(index) => navigation.navigate(state.routeNames[index])}
   >
     <BottomNavigationTab title="Home" />
-    <BottomNavigationTab title="Facturas"  />
+    <BottomNavigationTab title="Facturas" />
+    <BottomNavigationTab title="Customers" />
     <BottomNavigationTab title="Todos" />
     <BottomNavigationTab title="User" />
   </BottomNavigation>
@@ -28,6 +33,7 @@ const TabNavigator = () => (
   <Navigator tabBar={(props) => <BottomTabBar {...props} />}>
     <Screen name="Home" component={HomeScreen} />
     <Screen name="Facturas" component={HomeFacturas} />
+    <Screen name="Customers" component={HomeCustomer} />
     <Screen name="ToDo" component={TodoScreen} />
     <Screen name="Details" component={DetailsScreen} />
   </Navigator>

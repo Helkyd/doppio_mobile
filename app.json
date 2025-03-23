@@ -26,15 +26,29 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "dev.metagest.changemakers"
+      "package": "dev.metagest.changemakers",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "*.angolaerp.co.ao", //"my-custom-domain.ngrok.io", 
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "*.metagest.ao", //"my-custom-domain.ngrok.io", 
+              "pathPrefix": "/"
+            }
+
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "8fdd6952-bd1f-4c65-90fb-3a696ad52c97"
-      }
     },
     "plugins": [
       "expo-build-properties",
