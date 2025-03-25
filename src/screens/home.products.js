@@ -1,7 +1,7 @@
 //import React from "react";
 import React, { useEffect } from "react";
 //import { SafeAreaView, StyleSheet } from "react-native";
-import { SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
+import { TouchableOpacity,SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
 import { Input, Button, Layout, Modal, Card, Text, Spinner, Icon, IconElement } from "@ui-kitten/components";
 
 import Form from "../components/form.component";
@@ -27,6 +27,7 @@ export const HomeProducts = () => {
 
   const [visible, setVisible] = React.useState(false);
   const [criarProducto, setcriarProducto] = React.useState(false);
+  const [editProducto, seteditProducto] = React.useState(false);
 
   //Products ITEM
   const [itemCode, setItemCode] = React.useState('');
@@ -39,6 +40,12 @@ export const HomeProducts = () => {
 
   const [listaProdutos, setlistaProdutos] = React.useState([]);
   const [searchItemCode, setsearchItemCode] = React.useState('');
+
+  const [selectedItem, setSelectedItem] = React.useState(null);
+  const [selecteditemCode, setSelectedItemCode] = React.useState('');
+  const [selecteditemName, setSelectedItemName] = React.useState('');
+  const [selecteditemDescription, setSelectedItemDescription] = React.useState('');
+  const [selecteditemStandardRate, setSelectedItemStandardRate] = React.useState('');
 
   const formatarMoeda = new Intl.NumberFormat();
 
@@ -167,6 +174,32 @@ export const HomeProducts = () => {
   };
 
 
+  const editProduct = async () => {
+    console.log('****** EDIT Products...... ');
+    console.log('Item Name ', selecteditemName);
+    console.log('Item code ', selecteditemCode);
+    console.log('Item Descrip ', selecteditemDescription);
+    console.log('Item Rate ', selecteditemStandardRate);
+
+    db.updateDoc('Item', selecteditemCode, {
+      item_name: selecteditemName,
+      description: selecteditemDescription,
+      standard_rate: selecteditemStandardRate,
+    })
+      .then((doc) => {
+        console.log('UDDATE ITEM....')
+        console.log(doc)
+        seteditProducto(false);
+        fetchItems();
+        setcriarProducto(false)
+
+      })
+      .catch((error) => console.error(error));
+
+
+  };
+
+
   useEffect(() => {
     fetchItems();
     /*
@@ -276,7 +309,8 @@ export const HomeProducts = () => {
   // Log changes to customerName (optional)
   useEffect(() => {
     console.log('listaProdutos updated:', listaProdutos);
-  }, [listaProdutos]);
+    console.log('Rate ', selecteditemStandardRate)
+  }, [listaProdutos,selecteditemStandardRate]);
 
   //NEW FORM
   function handleSubmit(e) {
@@ -368,10 +402,29 @@ export const HomeProducts = () => {
     setItemDescription(`${valueOne}`);
   }  
   
+  //EDIT ITEM
+  const handleEditItem = (item) => {
+    // Option 1: Navigate to an edit screen
+    //navigation.navigate('EditProduct', { product: item });
+    console.log('PRodjut ',item);
+
+    console.log('Antes PRECO ', item.standard_rate)
+    setSelectedItemStandardRate(String(item.standard_rate));
+    setSelectedItemCode(item.item_code);
+    setSelectedItemName(item.item_name);
+    setSelectedItemDescription(item.description);
+    
+
+    seteditProducto(true);
+
+    // Option 2: Show an edit modal
+    // setSelectedItem(item);
+    // setEditModalVisible(true);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {criarProducto == false && 
+      {criarProducto == false && editProducto == false &&
         <Layout style={{ flex: 1 }}>
       <Layout style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Input
@@ -400,7 +453,7 @@ export const HomeProducts = () => {
             size="tiny"  
             onPress={navigateDetails}
           >
-            Create Customer
+            Create Service
           </Button>
           <Button 
             style={styles.button} 
@@ -422,11 +475,14 @@ export const HomeProducts = () => {
           data={listaProdutos}
           keyExtractor={(item) => item.name}
           renderItem={({ item }) => (
-            <View style={styles.item}>
-              <Text>{item.name} {item.name != item.description && <Text> - {item.description} </Text>} </Text> 
-              {item.standard_rate != null && <Text>Preco AOA: {formatarMoeda.format(item.standard_rate)}</Text>}
-              <Layout style={{ marginVertical: 5 }}></Layout>
-            </View>
+            <TouchableOpacity 
+              style={styles.item}
+              onPress={() => handleEditItem(item)}  // Handle item press
+              >
+                <Text>{item.name} {item.name != item.description && <Text> - {item.description} </Text>} </Text> 
+                {item.standard_rate != null && <Text>Preco AOA: {formatarMoeda.format(item.standard_rate)}</Text>}
+                <Layout style={{ marginVertical: 5 }}></Layout>
+            </TouchableOpacity>
           )}
         />        
       </Layout>
@@ -438,9 +494,8 @@ export const HomeProducts = () => {
 
         <View style={styles.containerNewCustomer}>
 
-
               <TextInput
-
+                label="Item Code"
                 placeholder="Item Code"
                 value={itemCode}
                 onChangeText={changeItemCode}
@@ -499,6 +554,80 @@ export const HomeProducts = () => {
 
         </Layout>
       }
+      {editProducto == true && 
+      <Layout
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+
+        <View style={styles.containerEditProducto}>
+          <Input 
+              label="Item Code"
+              placeholder="Item Code"
+              value={selecteditemCode}
+              onChangeText={changeItemCode}
+              style={styles.inputEditProduct}
+              disabled
+              
+            />
+            <Input
+              label="Item Name"
+              placeholder="Item Name"
+              value={selecteditemName}
+              onChangeText={setItemName}
+              style={styles.inputEditProduct}
+            />
+            <Input
+              label="Description"
+              placeholder="Description"
+              value={selecteditemDescription}
+              onChangeText={setItemDescription}
+              style={styles.inputEditProduct}
+            />
+            <Input
+              label="Rate"
+              placeholder="Rate"
+              value={selecteditemStandardRate}
+              onChangeText={setSelectedItemStandardRate}
+              style={styles.inputEditProduct}
+            />
+              
+
+            </View>
+            
+
+          <View style={styles.buttonContainer}>
+              <Button 
+                style={styles.button} 
+                size="tiny"  
+                onPress={() => {
+
+                  setsearchItemCode('');
+                  editProduct();
+                  //seteditProducto(false)
+
+                }}
+              >
+                Update Service
+              </Button>
+              <Button 
+                style={styles.button} 
+                size="tiny"  
+                onPress={() => {
+                  setItemCode('');
+                  setItemDescription('');
+                  setItemName('');
+                  setitemStandardRate('');
+
+                  setsearchItemCode('');
+                  seteditProducto(false)
+                }}
+              >
+                Dimiss
+              </Button>
+            </View>
+
+        </Layout>
+      }      
     </SafeAreaView>
   );
 };
@@ -526,7 +655,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
 
   },
-  
+
+  containerEditProducto: {
+    padding: 16,
+    color: 'red',
+  },
+  label: {
+    marginBottom: 8,
+    fontWeight: 'bold',
+  },
+
   container: {
     //flexDirection: 'col',
     //flexWrap: 'wrap',
@@ -549,5 +687,15 @@ const styles = StyleSheet.create({
     width: '60%',
     marginVertical: 10,
   },
-
+  inputEditProduct: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 2,
+    padding: 5,
+    //fontWeight: 'bold',
+    //outlineColor: 'green',
+    color: '#fff',
+    
+  },
 });
