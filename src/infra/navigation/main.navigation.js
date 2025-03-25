@@ -12,6 +12,7 @@ import { TodoScreen } from "../../screens/todo.screen";
 
 //Customer
 import { HomeCustomer } from "../../screens/home.customer";
+import { HomeProducts } from "../../screens/home.products";
 
 
 const { Navigator, Screen } = createBottomTabNavigator();
@@ -24,6 +25,7 @@ const BottomTabBar = ({ navigation, state }) => (
     <BottomNavigationTab title="Home" />
     <BottomNavigationTab title="Facturas" />
     <BottomNavigationTab title="Customers" />
+    <BottomNavigationTab title="Services" />
     <BottomNavigationTab title="Todos" />
     <BottomNavigationTab title="User" />
   </BottomNavigation>
@@ -34,6 +36,7 @@ const TabNavigator = () => (
     <Screen name="Home" component={HomeScreen} />
     <Screen name="Facturas" component={HomeFacturas} />
     <Screen name="Customers" component={HomeCustomer} />
+    <Screen name="Services" component={HomeProducts} />
     <Screen name="ToDo" component={TodoScreen} />
     <Screen name="Details" component={DetailsScreen} />
   </Navigator>

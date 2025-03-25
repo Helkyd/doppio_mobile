@@ -19,130 +19,93 @@ import axios from 'axios';
 
 const API_URL = "`${BASE_URI}`/api/resource/Customer"; 
 
-export const HomeCustomer = () => {
+export const HomeProducts = () => {
   const navigateDetails = () => {
     setVisible(true);
-    setCriarCliente(true);
+    setcriarProducto(true);
   };
 
   const [visible, setVisible] = React.useState(false);
-  const [criarCliente, setCriarCliente] = React.useState(false);
+  const [criarProducto, setcriarProducto] = React.useState(false);
 
-  const [customers, setCustomers] = React.useState([]);
-  const [customerName, setCustomerName] = React.useState('');
-  const [customerType, setCustomerType] = React.useState('');
-  const [customerGroup, setCustomerGroup] = React.useState('');
-  const [customerTaxID, setCustomerTaxID] = React.useState('');
-  const [customerAddress, setCustomerAddress] = React.useState('');
+  //Products ITEM
+  const [itemCode, setItemCode] = React.useState('');
+  const [itemName, setItemName] = React.useState('');
+  const [itemDescription, setItemDescription] = React.useState('');
+  const [itemGroup, setItemGrDescription] = React.useState('Services');
+  const [itemStockUom, setItemStockUom] = React.useState('Unit');
+  const [itemIsStock, setItemIsStock] = React.useState(false);
+  const [itemStandardRate, setitemStandardRate] = React.useState('');
 
+  const [listaProdutos, setlistaProdutos] = React.useState([]);
+  const [searchItemCode, setsearchItemCode] = React.useState('');
 
-  const [email, setEmail] = React.useState('');
-  const [phoneNumber, setPhoneNumber] = React.useState('');
+  const formatarMoeda = new Intl.NumberFormat();
 
   const {db, call} = useFrappe();
-  const [numerodeFacturas, setNumerodeFacturas] = React.useState(null);
-  const [listaFacturas, setListaFacturas] = React.useState([]);
-
-  const [customerCount, setCustomerCount] = React.useState(null);
-  const [listaCustomers, setListaCustomers] = React.useState([]);
 
   const dateHoje = new Date();
 
-  const [searchNIF, setSearchNIF] = React.useState('');
   
-  const fetchCustomers = (procurarNIF = null) => {
-    if (procurarNIF) {
-      console.log('nif a valida ', procurarNIF);
+  const fetchItems = (procurarItem = null) => {
+    if (procurarItem) {
+      console.log('Produto ', procurarItem);
   
         const searchParams = {
-          doctype: 'Customer',
-          filters: {'tax_id':procurarNIF},
+          doctype: 'Item',
+          fields: ['name','item_code','item_name','description','standard_rate'],
+          filters: [['item_name','like', procurarItem + '%']],
         };
         call
-          .get('frappe.client.get', searchParams)
+          .get('frappe.client.get_list', searchParams)
           .then((result) => {
-            console.log('**** listaCustomers')
+            console.log('**** Lista de ITems/Produtos')
             console.log(result)
             console.log(typeof(result))
-            const streams = [result.message]
+            const streams = result.message
             console.log(streams.customer_name)
-            setListaCustomers(streams)
+            setlistaProdutos(streams)
     
           })
           .catch((error) => console.error(error));
         
   
     } else {
-      console.log('FETCH CUSTOMERS....pppp');
-      db.getDocList('Customer',{
-        fields: ['name','customer_name','tax_id','email','phonenumber'],
-        filters: [['docstatus','!=',1]],
+      console.log('FETCH ITEMS....pppp');
+      db.getDocList('Item',{
+        fields: ['name','item_code','item_name','description','standard_rate'],
+        filters: [['disabled','!=',1]],
         orderBy: {
-          field: "customer_name",
+          field: "item_code",
           order: 'desc',
         },
   
       })
         .then((docs) => {
-          console.log('Ficha de Clientes')
-          console.log(docs)
-          console.log(typeof(docs))
           const streams = docs
-          setListaCustomers(streams)
+          setlistaProdutos(streams)
   
         })
         .catch((error) => console.error(error));
-  
-  
-        console.log('FACTURAS aaaa ')
   
     }
 
 
   };
 
-  const createCustomer = async () => {
-    console.log('Create Customer... ');
-    console.log('customname ', customerName);
-    console.log('tax id ', customerTaxID);
-    console.log('Email ', email);
-    if (email && validate(email)) {
-      console.log('EMAIL VALIDO');
-    } else if (email) {
-      console.log("EMAIL INVALIDO")
-      console.error("EMAIL INVALIDO");
-      Toast.show({
-        type: 'error',
-        position: 'top',
-        text1: 'EMAIL INVALIDO',
-        text2: 'Volte a Digitar o Email'
-      });
-
-      return
-    }
-
-    if (phoneNumber && validate_phones(phoneNumber)) {
-      console.log('Phone Number VALIDO');
-    } else if (phoneNumber) {
-      console.log("Phone Number INVALIDO")
-      console.error("Phone Number INVALIDO");
-      Toast.show({
-        type: 'error',
-        position: 'top',
-        text1: 'Phone Number INVALIDO',
-        text2: 'Volte a Digitar o Phone Number'
-      });
-
-      return
-
-    }
+  const createProduct = async () => {
+    console.log('Create Products...... ');
+    console.log('Item Name ', itemName);
+    console.log('Item code ', itemCode);
+    console.log('Item Descrip ', itemDescription);
+    console.log('Item Rate ', itemStandardRate);
 
     //Check if Exists first and after Save REcords
-    db.getDocList('Customer', {
+    db.getDocList('Item', {
       /** Fields to be fetched */
-      fields: ['name', 'customer_name','tax_id'],
+      fields: ['name', 'item_code'],
       /** Filters to be applied - SQL AND operation */
-      filters: [['tax_id', '=', customerTaxID]],
+      filters: [['name', '=', itemName]],
       /** Filters to be applied - SQL OR operation */
       asDict: false,
     })
@@ -154,24 +117,26 @@ export const HomeCustomer = () => {
 
 
         if (docs.length === 0) {
-          console.log('CLIENTE NAO EXISTE PODE CRIAR...');
+          console.log('Produto NAO EXISTE PODE CRIAR...');
           //CREATE
-          db.createDoc('Customer', {
-            customer_name: customerName,
-            tax_id: customerTaxID,
-            email: email,
-            phonenumber: phoneNumber,
+          db.createDoc('Item', {
+            item_name: itemCode,
+            item_code: itemCode,
+            description: itemDescription,
+            standard_rate: itemStandardRate,
+            item_group: itemGroup,
+            stock_uom: itemStockUom,
           })
             .then((doc) => {
               console.log(doc)
               //TODO: ONCE Saved... Clear Fields and return to CUSTOMER LIST
-              setCustomerName('');
-              setCustomerTaxID('');
-              setCustomerAddress('');
-              setEmail('');
-              setPhoneNumber('');
-              setSearchNIF('');
-              setCriarCliente(false)
+              setItemCode('');
+              setItemName('');
+              setItemDescription('');
+              setitemStandardRate('');
+
+              setsearchItemCode('');
+              setcriarProducto(false)
   
             })
             .catch((error) => console.error(error));
@@ -181,12 +146,12 @@ export const HomeCustomer = () => {
           
 
         } else {
-          console.log('CUSTOMER ALREADY EXISTE.....')
+          console.log('PRODUTO ALREADY EXISTE.....')
           Toast.show({
             type: 'error',
             position: 'top',
-            text1: 'O Cliente ja Existe.',
-            text2: 'Este Cliente ja Existe no Sistema'
+            text1: 'O Servico/Produto ja Existe.',
+            text2: 'Este Servico/Produto ja Existe no Sistema'
           });
   
         }
@@ -199,28 +164,11 @@ export const HomeCustomer = () => {
       });
 
 
-    /*
-
-    try {
-      await axios.post(API_URL, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },        
-        customer_name: customerName,
-        email: email,
-        phonenumber: phoneNumber,
-        tax_id: customerTaxID,
-      });
-      fetchCustomers(); // Refresh the list
-    } catch (error) {
-      console.error(error);
-    }
-    */
   };
 
 
   useEffect(() => {
-    fetchCustomers();
+    fetchItems();
     /*
     db.getDocList('Supplier', {
       fields: ["name","status"],
@@ -235,7 +183,7 @@ export const HomeCustomer = () => {
       console.log('Ficha de Clientes')
       console.log(data);
       //const streams = data
-      //setListaCustomers(streams)
+      //setlistaProdutos(streams)
      // console.log('Cliente ', streams[0])
 
     })
@@ -247,7 +195,7 @@ export const HomeCustomer = () => {
     console.log('nif a valida ', nifempresa);
 
     call
-      .get("aoerp_tools.util.angola.validar_nif", {'nif':searchNIF})
+      .get("aoerp_tools.util.angola.validar_nif", {'nif':searchItemCode})
       .then((result) => {
         console.log('NIF RESULT ',result)
         console.log("NIF INVALIDO ",result.message);
@@ -265,7 +213,7 @@ export const HomeCustomer = () => {
 
         } else {
           setCustomerName(result.message[2]);
-          setCustomerTaxID(searchNIF);
+          setCustomerTaxID(searchItemCode);
   
         }
 
@@ -276,7 +224,7 @@ export const HomeCustomer = () => {
     
   }
 
-  async function procurarNIF(nifempresa) {
+  async function procurarItem(nifempresa) {
     console.log('nif a valida ', nifempresa);
     db.getDocList('Customer',{
       fields: ['name','customer_name','tax_id','email','phonenumber'],
@@ -293,7 +241,7 @@ export const HomeCustomer = () => {
         console.log('Ficha de Clientes')
         console.log(docs)
         const streams = docs
-        setListaCustomers(streams)
+        setlistaProdutos(streams)
   
       })
       .catch((error) => console.error(error));
@@ -307,10 +255,10 @@ export const HomeCustomer = () => {
       call
         .get('frappe.client.get', searchParams)
         .then((result) => {
-          console.log('**** listaCustomers',result)
+          console.log('**** listaProdutos',result)
           console.log(result)
           const streams = result.message
-          setListaCustomers(streams)
+          setlistaProdutos(streams)
   
         })
         .catch((error) => console.error(error));
@@ -327,9 +275,8 @@ export const HomeCustomer = () => {
 
   // Log changes to customerName (optional)
   useEffect(() => {
-    console.log('customerName updated:', customerName);
-    console.log('listaCustomers updated:', listaCustomers);
-  }, [customerName,listaCustomers]);
+    console.log('listaProdutos updated:', listaProdutos);
+  }, [listaProdutos]);
 
   //NEW FORM
   function handleSubmit(e) {
@@ -408,18 +355,31 @@ export const HomeCustomer = () => {
     return errors
   }
   
+  //Copied Item code to Item Name
+  const changeItemCode = (valueOne) => {
+    /*
+    this.setState({
+      itemName,
+      itemCode: `${valueOne}-foo`
+    })
+      */
+    setItemName(`${valueOne}`);
+    setItemCode(`${valueOne}`);
+    setItemDescription(`${valueOne}`);
+  }  
+  
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
-      {criarCliente == false && 
+      {criarProducto == false && 
         <Layout style={{ flex: 1 }}>
       <Layout style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Input
-          value={searchNIF}
+          value={searchItemCode}
           onSubmitEditing={() => {
-            console.log('Search VALIDATE.... ',searchNIF);
-            if (searchNIF.length >= 10){
-              fetchCustomers(searchNIF); 
+            console.log('Search VALIDATE.... ',searchItemCode);
+            if (searchItemCode.length >= 0){
+              fetchItems(searchItemCode); 
             } else {
               Toast.show({
                 type: 'error',
@@ -429,9 +389,9 @@ export const HomeCustomer = () => {
               });
             }
           }}
-          onChangeText={(nextValue) => setSearchNIF(nextValue)}
-          placeholder="Procurar NIF ?"
-          style={{ width: 200, marginTop: 10 }}
+          onChangeText={(nextValue) => setsearchItemCode(nextValue)}
+          placeholder="Procurar Nome do Servico ?"
+          style={{ width: 250, marginTop: 10 }}
         />
         
         <View style={styles.buttonContainer}>
@@ -446,9 +406,9 @@ export const HomeCustomer = () => {
             style={styles.button} 
             size="tiny"  
             onPress={() => {
-              setSearchNIF('');
-              fetchCustomers();
-              setCriarCliente(false)
+              setsearchItemCode('');
+              fetchItems();
+              setcriarProducto(false)
             }}
 
           >
@@ -459,86 +419,54 @@ export const HomeCustomer = () => {
       
       <Layout style={{ flex: 3 }}>
         <FlatList
-          data={listaCustomers}
+          data={listaProdutos}
           keyExtractor={(item) => item.name}
           renderItem={({ item }) => (
             <View style={styles.item}>
-              <Text>Customer {item.customer_name}</Text>
-              {item.tax_id != null && <Text>NIF: {item.tax_id}</Text>}
-              {item.email != null && item.email != '' && <Text>@: {item.email}</Text>}
-              {item.phonenumber != null && item.phonenumber != '' && <Text>Telef. {item.phonenumber}</Text>}
+              <Text>{item.name} {item.name != item.description && <Text> - {item.description} </Text>} </Text> 
+              {item.standard_rate != null && <Text>Preco AOA: {formatarMoeda.format(item.standard_rate)}</Text>}
               <Layout style={{ marginVertical: 5 }}></Layout>
             </View>
           )}
         />        
       </Layout>
     </Layout> }
-      {criarCliente == true && 
+      {criarProducto == true && 
       <Layout
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
 
         <View style={styles.containerNewCustomer}>
 
-          <Input
-            label='NIF Empresa/Indivual'
-            value={searchNIF}
-            onSubmitEditing={() => {
-              console.log('NIF VALIDATE.... ',searchNIF);
-              if (searchNIF.length >= 10){
-                validarNIF(searchNIF);  
-              } else {
-                Toast.show({
-                  type: 'error',
-                  position: 'top',
-                  text1: 'NIF INVALIDO',
-                  text2: 'Volte da Digitar'
-                });
-    
-              }
-            }}
-            onChangeText={(nextValue) => setSearchNIF(nextValue)}
-            placeholder="Procurar NIF ?"
-            style={{ marginBottom: 50, width:200 }}
-          />
 
               <TextInput
 
-                placeholder="Customer Name"
-                value={customerName}
-                onChangeText={setCustomerName}
+                placeholder="Item Code"
+                value={itemCode}
+                onChangeText={changeItemCode}
                 style={styles.input}
-                readOnly
               />
               <TextInput
-                placeholder="Nif"
-                value={customerTaxID}
-                onChangeText={setCustomerTaxID}
+                placeholder="Item Name"
+                value={itemName}
+                onChangeText={setItemName}
                 style={styles.input}
-                readOnly
+              />
+              <TextInput
+                placeholder="Description"
+                value={itemDescription}
+                onChangeText={setItemDescription}
+                style={styles.input}
               />
 
               <TextInput
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
+                placeholder="Rate"
+                value={itemStandardRate}
+                onChangeText={setitemStandardRate}
                 //onChangeText={(setEmail) => validate(setEmail)}
                 style={styles.input}
 
               />
-              <TextInput
-                placeholder="Phone Number"
-                value={phoneNumber}
-                onChangeText={setPhoneNumber}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Type Address"
-                value={customerAddress}
-                onChange={setCustomerAddress}
-                style={styles.input}
-              />
-
               
 
             </View>
@@ -548,21 +476,21 @@ export const HomeCustomer = () => {
               <Button 
                 style={styles.button} 
                 size="tiny"  
-                onPress={createCustomer}
+                onPress={createProduct}
               >
-                Add Customer
+                Create Service
               </Button>
               <Button 
                 style={styles.button} 
                 size="tiny"  
                 onPress={() => {
-                  setCustomerName('');
-                  setCustomerTaxID('');
-                  setCustomerAddress('');
-                  setEmail('');
-                  setPhoneNumber('');
-                  setSearchNIF('');
-                  setCriarCliente(false)
+                  setItemCode('');
+                  setItemDescription('');
+                  setItemName('');
+                  setitemStandardRate('');
+
+                  setsearchItemCode('');
+                  setcriarProducto(false)
                 }}
               >
                 Dimiss
