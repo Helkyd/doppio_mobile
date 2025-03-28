@@ -4,6 +4,10 @@ import { Picker } from '@react-native-picker/picker';
 import { Card, Button, Layout } from '@ui-kitten/components';
 import { FlashList } from '@shopify/flash-list';
 
+//import DatePicker from 'react-native-date-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
+
+
 import { useFrappe } from "../provider/backend";
 import styled from "styled-components/native";
 import { FrappeApp } from "frappe-js-sdk";
@@ -38,15 +42,85 @@ export const HomeFacturas = ()  => {
   const [listaFacturas, setListaFacturas] = useState([]);
   const [visible, setVisible] = useState(false);
   const [onSubmit, setonSubmit] = React.useState(false);
+
+  const [customerOptions, setcustomerOptions] = React.useState([]);
+  const [itemOptions, setitemOptions] = React.useState([]);
   
   const {db} = useFrappe();
   const dateHoje = new Date();
 
+  //const [datePickerOpen, setDatePickerOpen] = useState(false);  
+  //const [date, setDate] = useState(new Date());
+  //const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);  
+
+  // Helper function to parse date strings in dd-MM-yyyy format
+  const parseCustomDate = (dateString) => {
+    if (!dateString) return new Date();
+    
+    // If already in ISO format (from initial state), parse directly
+    if (dateString.includes('T')) {
+      return new Date(dateString);
+    }
+    
+    // Parse dd-MM-yyyy format
+    const [day, month, year] = dateString.split('-');
+    return new Date(`${year}-${month}-${day}`);
+  };
+
+  // Format date to dd-MM-yyyy
+  const formatDate = (date) => {
+    return format(date, 'dd-MM-yyyy');
+  };
+
+  const ol_handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      //handleInputChange('posting_date', format(selectedDate, 'dd-MM-yyyy'));
+      //handleInputChange('due_date', formatDate(calculateDueDate(selectedDate)));
+      //handleInputChange('posting_date', formatDate(selectedDate));
+      //handlePostingDateChange('posting_date',selectedDate)
+      handleInputChange('posting_date', formatDate(selectedDate));
+      handleInputChange('due_date', formatDate(posting_date));
+
+    }
+  };
+  
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = formatDate(selectedDate);
+      const dueDate = formatDate(new Date(selectedDate.setDate(selectedDate.getDate() + 30)));
+      
+      // Update both fields in one state update
+      setFormData(prev => ({
+        ...prev,
+        posting_date: formattedDate,
+        due_date: dueDate
+      }));
+    }
+  };
+
+  const handlePostingDateChange = (selectedDate) => {
+    console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+    console.log(selectedDate.value)
+    console.log(formatDate(selectedDate))
+    console.log(calculateDueDate(selectedDate))
+
+    const formattedDate = format(selectedDate, 'dd-MM-yyyy');
+    setFormData({
+      ...formData,
+      //posting_date: formattedDate,
+      due_date: calculateDueDate(formattedDate)
+    });
+  };
+
   // Form data state
   const [formData, setFormData] = useState({
     customer_name: '',
-    posting_date: new Date().toISOString().split('T')[0],
+    posting_date: formatDate(new Date()), //new Date().toISOString().split('T')[0],
     posting_time: new Date().toTimeString().substring(0, 5),
+    due_date: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // Initialize with +30 days
     company: '',
     items: [{
       item_code: '',
@@ -60,6 +134,7 @@ export const HomeFacturas = ()  => {
   });
 
   // Customer options
+  /*
   const customerOptions = [
     'John Doe',
     'Jane Smith',
@@ -67,8 +142,10 @@ export const HomeFacturas = ()  => {
     'Emily Davis',
     'Michael Wilson'
   ];
+  */
 
   // Item options
+  /*
   const itemOptions = [
     { code: 'ITM001', name: 'Laptop', description: '15" Business Laptop', price: 899.99, uom: 'EA' },
     { code: 'ITM002', name: 'Mouse', description: 'Wireless Mouse', price: 24.99, uom: 'EA' },
@@ -76,26 +153,33 @@ export const HomeFacturas = ()  => {
     { code: 'ITM004', name: 'Monitor', description: '27" 4K Monitor', price: 299.99, uom: 'EA' },
     { code: 'ITM005', name: 'Headphones', description: 'Noise Cancelling', price: 199.99, uom: 'EA' }
   ];
+  */
 
   // Initialize form data when modal opens
   const openModal = () => {
+    const today = new Date();
     setFormData({
-      customer_name: customerOptions[0],
-      posting_date: new Date().toISOString().split('T')[0],
-      posting_time: new Date().toTimeString().substring(0, 5),
+      customer_name: '',
+      //posting_date: new Date().toISOString().split('T')[0],
+      //posting_date: formatDate(new Date()), // Use formatted date
+      //posting_time: new Date().toTimeString().substring(0, 5),
+      posting_date: formatDate(today),
+      posting_time: today.toTimeString().substring(0, 5),      
+      due_date: formatDate(new Date(today.setDate(today.getDate() + 30))),
       company: '',
       items: [{
-        item_code: itemOptions[0].code,
-        item_name: itemOptions[0].name,
-        description: itemOptions[0].description,
-        price: itemOptions[0].price,
+        item_code: '', //itemOptions[0].code,
+        item_name: '', //itemOptions[0].name,
+        description: '', //itemOptions[0].description,
+        price: '', //itemOptions[0].price,
         qtd: '1',
-        uom: itemOptions[0].uom,
-        total: itemOptions[0].price * 1
+        uom: '', //itemOptions[0].uom,
+        total: '', //itemOptions[0].price * 1
       }]
     });
     setVisible(true);
   };
+
 
   const navigateDetails = () => {
     setCriarFactura(true);
@@ -111,6 +195,8 @@ export const HomeFacturas = ()  => {
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
+    const formatarMoeda = new Intl.NumberFormat();
+
     updatedItems[index] = {
       ...updatedItems[index],
       [field]: value,
@@ -129,9 +215,9 @@ export const HomeFacturas = ()  => {
           ...updatedItems[index],
           item_name: selectedItem.name,
           description: selectedItem.description,
-          price: selectedItem.price,
+          price: formatarMoeda.format(selectedItem.price),
           uom: selectedItem.uom,
-          total: (parseFloat(updatedItems[index].qtd || 0) * selectedItem.price).toFixed(2)
+          total: formatarMoeda.format((parseFloat(updatedItems[index].qtd || 0) * selectedItem.price).toFixed(2))
         };
       }
     }
@@ -143,6 +229,7 @@ export const HomeFacturas = ()  => {
   };
 
   const addItem = () => {
+    if (itemOptions.length === 0) return;
     setFormData({
       ...formData,
       items: [
@@ -179,6 +266,31 @@ export const HomeFacturas = ()  => {
     setVisible(false);
     setCriarFactura(false);
   };
+
+  const unformatCurrency = (formattedValue) => {
+    if (!formattedValue) return 0;
+    // Remove all non-digit characters except decimal point
+    const numericString = formattedValue.toString()
+      .replace(/[^0-9.]/g, '');
+    return parseFloat(numericString) || 0;
+  };
+
+  const calculateGrandTotal = () => {
+    const formatarMoeda = new Intl.NumberFormat();
+    return formData.items.reduce((sum, item) => {
+      console.log(sum)
+      console.log(unformatCurrency(item.total))
+      console.log(formatarMoeda.format(sum + (parseFloat(item.total) || 0)));
+      return sum + (parseFloat(unformatCurrency(item.total)) || 0);
+    }, 0);
+  };  
+
+  const calculateDueDate = (postingDate) => {
+    if (!postingDate) return '';
+    const date = new Date(postingDate);
+    date.setDate(date.getDate() + 30);
+    return format(date, 'yyyy-MM-dd');
+  };  
 
   const UnpaidFacturas = ({ item }) => (
     <View>
@@ -283,6 +395,37 @@ export const HomeFacturas = ()  => {
     button: {
       marginVertical: 10,
     },
+    grandTotalContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 15,
+      backgroundColor: '#f0f0f0',
+      borderRadius: 5,
+      marginBottom: 15,
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    grandTotalLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#333',
+    },
+    grandTotalValue: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#2196F3',
+    },    
+    dateInput: {
+      backgroundColor: '#fff',
+      padding: 10,
+      borderRadius: 5,
+      borderWidth: 1,
+      borderColor: '#ddd',
+    },
+    dateText: {
+      color: '#000',
+    },    
   });
 
 
@@ -309,6 +452,56 @@ export const HomeFacturas = ()  => {
       console.log('factura1 ', streams[0])
       console.log('Data hoje ', dateHoje.getDate())
     })
+
+
+  
+    db.getDocList('Customer', {
+      fields: ["name"],
+      filters: [['disabled','!=',1]],
+      limit_start: 5,
+      limit: 20,
+      orderBy: {
+        field: "customer_name",
+        order: 'desc',
+      },
+    }).then((data) => {
+      console.log('Customers data:', data);
+      setcustomerOptions(data);
+      // Initialize formData with first customer if not already set
+      /*
+      if (data.length > 0 && !formData.customer_name) {
+        setFormData(prev => ({
+          ...prev,
+          customer_name: data[0].name
+        }));
+      }
+        */
+    })
+
+    //{ code: 'ITM001', name: 'Laptop', description: '15" Business Laptop', price: 899.99, uom: 'EA' },
+    //ITEM
+    db.getDocList('Item', {
+      fields: ["name","item_code","item_name","description","standard_rate","stock_uom"],
+      filters: [['disabled','!=',1]],
+      limit_start: 5,
+      limit: 20,
+      orderBy: {
+        field: "name",
+        order: 'desc',
+      },
+    }).then((data) => {
+      console.log('ITEMS/PRODS data:', data);
+      const formattedItems = data.map(item => ({
+          code: item.item_code || item.name,
+          name: item.item_name,
+          description: item.description,
+          price: item.standard_rate,
+          uom: item.stock_uom
+        }));
+        setitemOptions(formattedItems);
+      })
+
+
 
   }, [db])
 
@@ -383,23 +576,41 @@ export const HomeFacturas = ()  => {
                 selectedValue={formData.customer_name}
                 onValueChange={(value) => handleInputChange('customer_name', value)}
                 style={styles.picker}
+                
               >
                 {customerOptions.map((customer, index) => (
-                  <Picker.Item key={index} label={customer} value={customer} />
+                  <Picker.Item 
+                    key={customer.name} 
+                    label={customer.customer_name || customer.name} 
+                    value={customer.name} 
+                  />
                 ))}
               </Picker>
+
             </View>
+
 
             {/* Posting Date */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Posting Date</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.posting_date}
-                onChangeText={(text) => handleInputChange('posting_date', text)}
-                placeholder="YYYY-MM-DD"
-              />
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(true)}
+                style={styles.dateInput}
+              >
+                <Text style={styles.dateText}>
+                  {formData.posting_date || 'Select a date'}
+                </Text>
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={parseCustomDate(formData.posting_date)}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                />
+              )}
             </View>
+
 
             {/* Posting Time */}
             <View style={styles.inputGroup}>
@@ -412,16 +623,16 @@ export const HomeFacturas = ()  => {
               />
             </View>
 
-            {/* Company */}
+            {/* Due Date (read-only) */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Company</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.company}
-                onChangeText={(text) => handleInputChange('company', text)}
-                placeholder="Company Name"
-              />
+              <Text style={styles.label}>Due Date (30 days)</Text>
+              <View style={styles.dateInput}>
+                <Text style={styles.dateText}>
+                  {formData.due_date || 'Will calculate after posting date is selected'}
+                </Text>
+              </View>
             </View>
+
 
             <Text style={[styles.header, { marginTop: 20 }]}>Items</Text>
             
@@ -439,7 +650,7 @@ export const HomeFacturas = ()  => {
                     style={styles.picker}
                   >
                     {itemOptions.map((option, idx) => (
-                      <Picker.Item key={idx} label={option.code} value={option.code} />
+                      <Picker.Item key={option.code} label={`${option.code} - ${option.name}`}  value={option.code} />
                     ))}
                   </Picker>
                 </View>
@@ -470,7 +681,8 @@ export const HomeFacturas = ()  => {
                   <TextInput
                     style={styles.input}
                     value={item.price.toString()}
-                    editable={false}
+                    onChangeText={(text) => handleItemChange(index, 'price', text)}
+                    keyboardType="numeric"
                   />
                 </View>
 
@@ -516,6 +728,15 @@ export const HomeFacturas = ()  => {
                 )}
               </View>
             ))}
+
+            {/* Grand Total Section */}
+            <View style={styles.grandTotalContainer}>
+              <Text style={styles.grandTotalLabel}>Grand Total:</Text>
+              <Text style={styles.grandTotalValue}>
+                AOA {new Intl.NumberFormat().format(calculateGrandTotal())}
+
+              </Text>
+            </View>
 
             {/* Add Item Button */}
             <TouchableOpacity style={styles.addButton} onPress={addItem}>
