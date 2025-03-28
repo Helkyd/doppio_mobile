@@ -13,6 +13,7 @@ import { TodoScreen } from "../../screens/todo.screen";
 //Customer
 import { HomeCustomer } from "../../screens/home.customer";
 import { HomeProducts } from "../../screens/home.products";
+import { HomeDashboard } from "../../screens/home.dashboard";
 
 
 const { Navigator, Screen } = createBottomTabNavigator();
@@ -23,6 +24,8 @@ const BottomTabBar = ({ navigation, state }) => (
     onSelect={(index) => navigation.navigate(state.routeNames[index])}
   >
     <BottomNavigationTab title="Home" />
+    <BottomNavigationTab title="Dashboard" />
+
     <BottomNavigationTab title="Facturas" />
     <BottomNavigationTab title="Customers" />
     <BottomNavigationTab title="Services" />
@@ -33,7 +36,9 @@ const BottomTabBar = ({ navigation, state }) => (
 
 const TabNavigator = () => (
   <Navigator tabBar={(props) => <BottomTabBar {...props} />}>
-    <Screen name="Home" component={HomeScreen} />
+    <Screen name="Home" component={HomeScreen} />        
+    <Screen name="Dashboard" component={HomeDashboard} />
+
     <Screen name="Facturas" component={HomeFacturas} />
     <Screen name="Customers" component={HomeCustomer} />
     <Screen name="Services" component={HomeProducts} />

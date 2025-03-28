@@ -1,5 +1,7 @@
 //import React from "react";
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
+import { AuthContext } from "../provider/auth";
+
 //import { SafeAreaView, StyleSheet } from "react-native";
 import { TouchableOpacity,SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
 import { Input, Button, Layout, Modal, Card, Text, Spinner, Icon, IconElement } from "@ui-kitten/components";
@@ -24,6 +26,8 @@ export const HomeProducts = () => {
     setVisible(true);
     setcriarProducto(true);
   };
+
+  const { accessToken, refreshAccessTokenAsync } = useContext(AuthContext);
 
   const [visible, setVisible] = React.useState(false);
   const [criarProducto, setcriarProducto] = React.useState(false);
@@ -74,7 +78,9 @@ export const HomeProducts = () => {
             setlistaProdutos(streams)
     
           })
-          .catch((error) => console.error(error));
+          .catch((error) => {
+            console.error(error)
+          });
         
   
     } else {
@@ -88,13 +94,28 @@ export const HomeProducts = () => {
         },
   
       })
-        .then((docs) => {
-          const streams = docs
-          setlistaProdutos(streams)
-  
-        })
-        .catch((error) => console.error(error));
-  
+      .then((docs) => {
+        const streams = docs
+        setlistaProdutos(streams)
+
+      })
+      .catch(async (e) => {
+        if (e.httpStatus === 403 || e.httpStatus === 401) {
+          await refreshAccessTokenAsync();
+        } else {
+          console.error(e);
+          Toast.show({
+            type: "error",
+            position: 'top',
+            text1: 'Error',
+            text2: e.message
+          });
+        }
+      })
+      .finally(() => {
+        setLoadingTodos(false);
+      });
+
     }
 
 
@@ -222,7 +243,7 @@ export const HomeProducts = () => {
     })
      */
               
-  }, [db]);
+  }, [accessToken,db]);
   
   async function validarNIF(nifempresa) {
     console.log('nif a valida ', nifempresa);

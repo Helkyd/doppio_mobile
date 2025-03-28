@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView } from 'react-native';
+import { SafeAreaView, View,  TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { Card, Button, Layout } from '@ui-kitten/components';
-import { FlashList } from '@shopify/flash-list';
 
+import { Input, Button, Layout, Modal, Card, Text, Spinner, Icon, IconElement } from "@ui-kitten/components";
+
+import Form from "../components/form.component";
 import { useFrappe } from "../provider/backend";
 import styled from "styled-components/native";
 import { FrappeApp } from "frappe-js-sdk";
-
+import { FlashList } from "@shopify/flash-list";
 
 import { format } from "date-fns";
 
 import * as Linking from 'expo-linking';
 import { BASE_URI } from "../data/constants";
+
+
+const HomeScreenContainer = styled(Layout)`
+ padding-top: 20px;
+ padding-left:30px;
+ padding-right: 30px;
+`
+
 
 
 const UnpaidFacturas = ({ item }) => {
@@ -31,34 +40,24 @@ const UnpaidFacturas = ({ item }) => {
   );
 };
 
-
-export const HomeFacturas = ()  => {
-  const [criarFactura, setCriarFactura] = useState(false);
-  const [numerodeFacturas, setNumerodeFacturas] = useState(0);
-  const [listaFacturas, setListaFacturas] = useState([]);
-  const [visible, setVisible] = useState(false);
-  const [onSubmit, setonSubmit] = React.useState(false);
+export const HomeFacturas = () => {
+  //const HomeFacturas = ({ visible, onClose, onSubmit }) => {
+    const navigateDetails = () => {
+      setVisible(true);
+      console.log('Criar FActrura TRUE');
+      setCriarFactura(true);
+    };
   
+  const [visible, setVisible] = React.useState(false);
+  const [onClose, setonClose] = React.useState(false);
+  const [onSubmit, setonSubmit] = React.useState(false);
+
+  const [criarFactura, setCriarFactura] = React.useState(false);    
   const {db} = useFrappe();
+  const [numerodeFacturas, setNumerodeFacturas] = React.useState(null);
+  const [listaFacturas, setListaFacturas] = React.useState([]);
   const dateHoje = new Date();
-
-  // Form data state
-  const [formData, setFormData] = useState({
-    customer_name: '',
-    posting_date: new Date().toISOString().split('T')[0],
-    posting_time: new Date().toTimeString().substring(0, 5),
-    company: '',
-    items: [{
-      item_code: '',
-      item_name: '',
-      description: '',
-      price: 0,
-      qtd: '1',
-      uom: '',
-      total: 0
-    }]
-  });
-
+  
   // Customer options
   const customerOptions = [
     'John Doe',
@@ -77,31 +76,24 @@ export const HomeFacturas = ()  => {
     { code: 'ITM005', name: 'Headphones', description: 'Noise Cancelling', price: 199.99, uom: 'EA' }
   ];
 
-  // Initialize form data when modal opens
-  const openModal = () => {
-    setFormData({
-      customer_name: customerOptions[0],
-      posting_date: new Date().toISOString().split('T')[0],
-      posting_time: new Date().toTimeString().substring(0, 5),
-      company: '',
-      items: [{
-        item_code: itemOptions[0].code,
-        item_name: itemOptions[0].name,
-        description: itemOptions[0].description,
-        price: itemOptions[0].price,
-        qtd: '1',
-        uom: itemOptions[0].uom,
-        total: itemOptions[0].price * 1
-      }]
-    });
-    setVisible(true);
-  };
+  // State for form fields
+  const [formData, setFormData] = useState({
+    customer_name: customerOptions[0],
+    posting_date: new Date().toISOString().split('T')[0],
+    posting_time: new Date().toTimeString().substring(0, 5),
+    company: '',
+    items: [{
+      item_code: itemOptions[0].code,
+      item_name: itemOptions[0].name,
+      description: itemOptions[0].description,
+      price: itemOptions[0].price,
+      qtd: '1',
+      uom: itemOptions[0].uom,
+      total: itemOptions[0].price * 1
+    }]
+  });
 
-  const navigateDetails = () => {
-    setCriarFactura(true);
-    openModal();
-  };
-
+  // Handle input changes
   const handleInputChange = (name, value) => {
     setFormData({
       ...formData,
@@ -109,19 +101,22 @@ export const HomeFacturas = ()  => {
     });
   };
 
+  // Handle item changes
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...formData.items];
     updatedItems[index] = {
       ...updatedItems[index],
-      [field]: value,
+      [field]: field === 'qtd' ? value : value,
     };
 
+    // Recalculate total if qtd or price changes
     if (field === 'qtd' || field === 'price') {
       const qtd = parseFloat(field === 'qtd' ? value : updatedItems[index].qtd) || 0;
       const price = parseFloat(field === 'price' ? value : updatedItems[index].price) || 0;
       updatedItems[index].total = (qtd * price).toFixed(2);
     }
 
+    // Update item name, description, etc. when item code changes
     if (field === 'item_code') {
       const selectedItem = itemOptions.find(item => item.code === value);
       if (selectedItem) {
@@ -142,6 +137,7 @@ export const HomeFacturas = ()  => {
     });
   };
 
+  // Add new item row
   const addItem = () => {
     setFormData({
       ...formData,
@@ -160,6 +156,7 @@ export const HomeFacturas = ()  => {
     });
   };
 
+  // Remove item row
   const removeItem = (index) => {
     const updatedItems = [...formData.items];
     updatedItems.splice(index, 1);
@@ -169,122 +166,11 @@ export const HomeFacturas = ()  => {
     });
   };
 
+  // Handle form submission
   const handleSubmit = () => {
-    console.log('Form submitted:', formData);
-    setVisible(false);
-    setCriarFactura(false);
+    onSubmit(formData);
+    onClose();
   };
-
-  const onClose = () => {
-    setVisible(false);
-    setCriarFactura(false);
-  };
-
-  const UnpaidFacturas = ({ item }) => (
-    <View>
-      <Text>{item}</Text>
-    </View>
-  );
-
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      padding: 20,
-      backgroundColor: '#f5f5f5',
-    },
-    header: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      marginBottom: 15,
-      color: '#333',
-    },
-    inputGroup: {
-      marginBottom: 15,
-    },
-    label: {
-      marginBottom: 5,
-      fontSize: 14,
-      color: '#555',
-    },
-    input: {
-      backgroundColor: '#fff',
-      padding: 10,
-      borderRadius: 5,
-      borderWidth: 1,
-      borderColor: '#ddd',
-    },
-    picker: {
-      backgroundColor: '#fff',
-      borderRadius: 5,
-      borderWidth: 1,
-      borderColor: '#ddd',
-    },
-    itemContainer: {
-      backgroundColor: '#fff',
-      padding: 15,
-      borderRadius: 5,
-      marginBottom: 15,
-      borderWidth: 1,
-      borderColor: '#eee',
-    },
-    itemHeader: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      marginBottom: 10,
-      color: '#444',
-    },
-    addButton: {
-      backgroundColor: '#4CAF50',
-      padding: 12,
-      borderRadius: 5,
-      alignItems: 'center',
-      marginBottom: 20,
-    },
-    addButtonText: {
-      color: '#fff',
-      fontWeight: 'bold',
-    },
-    removeButton: {
-      backgroundColor: '#f44336',
-      padding: 8,
-      borderRadius: 5,
-      alignItems: 'center',
-      marginTop: 10,
-    },
-    removeButtonText: {
-      color: '#fff',
-      fontSize: 12,
-    },
-    buttonContainer: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 10,
-    },
-    cancelButton: {
-      backgroundColor: '#f44336',
-      padding: 12,
-      borderRadius: 5,
-      flex: 1,
-      marginRight: 10,
-      alignItems: 'center',
-    },
-    submitButton: {
-      backgroundColor: '#2196F3',
-      padding: 12,
-      borderRadius: 5,
-      flex: 1,
-      marginLeft: 10,
-      alignItems: 'center',
-    },
-    buttonText: {
-      color: '#fff',
-      fontWeight: 'bold',
-    },
-    button: {
-      marginVertical: 10,
-    },
-  });
-
 
   useEffect(() => {
     db.getCount('Sales Invoice').then((count) => {
@@ -312,6 +198,7 @@ export const HomeFacturas = ()  => {
 
   }, [db])
 
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <Layout style={{ flex: 1, padding: 16 }}>
@@ -336,37 +223,11 @@ export const HomeFacturas = ()  => {
 
               <Layout style={{ marginVertical: 5 }} />
               <View style={{ width: "100%", height: "100%" }}>
-
                 <FlashList
-                    data={listaFacturas}
-                    renderItem={({ item }) => (
-                      <Card key={item.name} style={{ width: "100%", marginBottom: 20 }}>
-                        <Text style={{ fontSize: 10 }}>
-                          {item.posting_date ? format(item.posting_date, "dd-MM-yyyy") : ''} - 
-                          {item.doc_agt || ''} - 
-                          {item.customer || ''}
-                        </Text>
-                        <Text category="h6" style={{ fontSize: 12, color: 'red' }}>
-                          {item.outstanding_amount ? new Intl.NumberFormat().format(item.outstanding_amount) : ''}
-                        </Text>
-                        <Button 
-                          onPress={() => {
-                            if (item.name) {
-                              Linking.openURL(`${BASE_URI}/app/sales-invoice/${item.name}`)
-                            }
-                          }} 
-                          appearance="ghost"
-                        >
-                          Abrir
-                        </Button>
-                        <Layout style={{ marginVertical: 2 }}></Layout>      
-                      </Card>
-                    )}
-                    estimatedItemSize={100}
-                    keyExtractor={(item) => item.name}
-                  />
-
-
+                  data={listaFacturas}
+                  renderItem={UnpaidFacturas}
+                  estimatedItemSize={100}
+                />
               </View>
             </Card>
           </View>
@@ -538,3 +399,103 @@ export const HomeFacturas = ()  => {
   );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    marginBottom: 5,
+    fontSize: 14,
+    color: '#555',
+  },
+  input: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  picker: {
+    backgroundColor: '#fff',
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  itemContainer: {
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 5,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  itemHeader: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#444',
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  removeButton: {
+    backgroundColor: '#f44336',
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  removeButtonText: {
+    color: '#fff',
+    fontSize: 12,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+    padding: 12,
+    borderRadius: 5,
+    flex: 1,
+    marginRight: 10,
+    alignItems: 'center',
+  },
+  submitButton: {
+    backgroundColor: '#2196F3',
+    padding: 12,
+    borderRadius: 5,
+    flex: 1,
+    marginLeft: 10,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  button: {
+    marginVertical: 10,
+  },
+});
+
+//export default HomeFacturas;
