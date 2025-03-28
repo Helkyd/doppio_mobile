@@ -256,10 +256,37 @@ export const HomeFacturas = ()  => {
     });
   };
 
-  const handleSubmit = () => {
+  const old_handleSubmit = () => {
     console.log('Form submitted:', formData);
     setVisible(false);
     setCriarFactura(false);
+  };
+  const handleSubmit = () => {
+    // Validate that all items have item_code selected
+    const hasEmptyItemCode = formData.items.some(item => !item.item_code);
+    
+    if (hasEmptyItemCode) {
+      alert('Please select an item code for all items');
+      return;
+    }
+  
+    // Validate customer is selected
+    if (!formData.customer_name) {
+      alert('Please select a customer');
+      return;
+    }
+  
+    console.log('Form submitted:', formData);
+    setVisible(false);
+    setCriarFactura(false);
+  };
+
+  const isFormValid = () => {
+    return (
+      formData.customer_name && 
+      formData.items.length > 0 &&
+      formData.items.every(item => item.item_code)
+    );
   };
 
   const onClose = () => {
@@ -279,9 +306,12 @@ export const HomeFacturas = ()  => {
     const formatarMoeda = new Intl.NumberFormat();
     return formData.items.reduce((sum, item) => {
       console.log(sum)
+      console.log('vvvv')
       console.log(unformatCurrency(item.total))
-      console.log(formatarMoeda.format(sum + (parseFloat(item.total) || 0)));
-      return sum + (parseFloat(unformatCurrency(item.total)) || 0);
+      console.log(formatarMoeda.format(sum+unformatCurrency(item.total)) || 0)
+      console.log('valor')
+      console.log(formatarMoeda.format(sum + (unformatCurrency(item.total)) || 0));
+      return sum+unformatCurrency(item.total) || 0;
     }, 0);
   };  
 
@@ -578,6 +608,7 @@ export const HomeFacturas = ()  => {
                 style={styles.picker}
                 
               >
+                <Picker.Item label="Select a Customer..." value="" /> {/* Blank/default option */}
                 {customerOptions.map((customer, index) => (
                   <Picker.Item 
                     key={customer.name} 
@@ -586,6 +617,9 @@ export const HomeFacturas = ()  => {
                   />
                 ))}
               </Picker>
+              {!formData.customer_name && (
+                    <Text style={{color: 'red', fontSize: 12}}>Customer is required</Text>
+                  )}
 
             </View>
 
@@ -643,16 +677,24 @@ export const HomeFacturas = ()  => {
                 
                 {/* Item Code */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Item Code</Text>
+                  <Text style={styles.label}>Item Code *</Text>
                   <Picker
                     selectedValue={item.item_code}
                     onValueChange={(value) => handleItemChange(index, 'item_code', value)}
                     style={styles.picker}
                   >
+                    <Picker.Item label="Select an item..." value="" /> {/* Blank/default option */}
                     {itemOptions.map((option, idx) => (
-                      <Picker.Item key={option.code} label={`${option.code} - ${option.name}`}  value={option.code} />
+                      <Picker.Item 
+                        key={option.code} 
+                        label={`${option.code} - ${option.name}`}  
+                        value={option.code} 
+                      />
                     ))}
                   </Picker>
+                  {!item.item_code && (
+                    <Text style={{color: 'red', fontSize: 12}}>Item code is required</Text>
+                  )}
                 </View>
 
                 {/* Item Name */}
@@ -748,9 +790,14 @@ export const HomeFacturas = ()  => {
               <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
                 <Text style={styles.buttonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <TouchableOpacity 
+                style={[styles.submitButton, !isFormValid() && {backgroundColor: '#cccccc'}]} 
+                onPress={handleSubmit}
+                disabled={!isFormValid()}
+              >
                 <Text style={styles.buttonText}>Submit</Text>
               </TouchableOpacity>
+
             </View>
           </ScrollView>
         </Modal>
