@@ -23,7 +23,6 @@ const BottomTabBar = ({ navigation, state }) => (
     selectedIndex={state.index}
     onSelect={(index) => navigation.navigate(state.routeNames[index])}
   >
-    <BottomNavigationTab title="Home" />
     <BottomNavigationTab title="Dashboard" />
 
     <BottomNavigationTab title="Facturas" />
@@ -36,7 +35,6 @@ const BottomTabBar = ({ navigation, state }) => (
 
 const TabNavigator = () => (
   <Navigator tabBar={(props) => <BottomTabBar {...props} />}>
-    <Screen name="Home" component={HomeScreen} />        
     <Screen name="Dashboard" component={HomeDashboard} />
 
     <Screen name="Facturas" component={HomeFacturas} />

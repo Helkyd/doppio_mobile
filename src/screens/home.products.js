@@ -3,7 +3,7 @@ import React, { useContext, useEffect } from "react";
 import { AuthContext } from "../provider/auth";
 
 //import { SafeAreaView, StyleSheet } from "react-native";
-import { TouchableOpacity,SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
+import { ScrollView, TouchableOpacity,SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
 import { Input, Button, Layout, Modal, Card, Text, Spinner, Icon, IconElement } from "@ui-kitten/components";
 
 import Form from "../components/form.component";
@@ -509,145 +509,157 @@ export const HomeProducts = () => {
       </Layout>
     </Layout> }
       {criarProducto == true && 
-      <Layout
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-        >
+      <ScrollView 
+        contentContainerStyle={styles.scrollContainer}
+        keyboardShouldPersistTaps="handled"
+      >
 
-        <View style={styles.containerNewCustomer}>
+        <Layout
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
 
-              <TextInput
-                label="Item Code"
-                placeholder="Item Code"
-                value={itemCode}
-                onChangeText={changeItemCode}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Item Name"
-                value={itemName}
-                onChangeText={setItemName}
-                style={styles.input}
-              />
-              <TextInput
-                placeholder="Description"
-                value={itemDescription}
-                onChangeText={setItemDescription}
-                style={styles.input}
-              />
+          <View style={styles.containerNewCustomer}>
 
-              <TextInput
-                placeholder="Rate"
-                value={itemStandardRate}
-                onChangeText={setitemStandardRate}
-                //onChangeText={(setEmail) => validate(setEmail)}
-                style={styles.input}
+                <TextInput
+                  label="Item Code"
+                  placeholder="Item Code"
+                  value={itemCode}
+                  onChangeText={changeItemCode}
+                  style={styles.input}
+                />
+                <TextInput
+                  placeholder="Item Name"
+                  value={itemName}
+                  onChangeText={setItemName}
+                  style={styles.input}
+                />
+                <TextInput
+                  placeholder="Description"
+                  value={itemDescription}
+                  onChangeText={setItemDescription}
+                  style={styles.input}
+                />
 
-              />
+                <TextInput
+                  placeholder="Rate"
+                  value={itemStandardRate}
+                  onChangeText={setitemStandardRate}
+                  //onChangeText={(setEmail) => validate(setEmail)}
+                  style={styles.input}
+
+                />
+                
+
+              </View>
               
 
-            </View>
-            
+            <View style={styles.buttonContainer}>
+                <Button 
+                  style={styles.button} 
+                  size="tiny"  
+                  onPress={createProduct}
+                >
+                  Create Service
+                </Button>
+                <Button 
+                  style={styles.button} 
+                  size="tiny"  
+                  onPress={() => {
+                    setItemCode('');
+                    setItemDescription('');
+                    setItemName('');
+                    setitemStandardRate('');
 
-          <View style={styles.buttonContainer}>
-              <Button 
-                style={styles.button} 
-                size="tiny"  
-                onPress={createProduct}
-              >
-                Create Service
-              </Button>
-              <Button 
-                style={styles.button} 
-                size="tiny"  
-                onPress={() => {
-                  setItemCode('');
-                  setItemDescription('');
-                  setItemName('');
-                  setitemStandardRate('');
+                    setsearchItemCode('');
+                    setcriarProducto(false)
+                  }}
+                >
+                  Dimiss
+                </Button>
+              </View>
 
-                  setsearchItemCode('');
-                  setcriarProducto(false)
-                }}
-              >
-                Dimiss
-              </Button>
-            </View>
-
-        </Layout>
+          </Layout>
+        </ScrollView>
       }
       {editProducto == true && 
-      <Layout
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
         >
 
-        <View style={styles.containerEditProducto}>
-          <Input 
-              label="Item Code"
-              placeholder="Item Code"
-              value={selecteditemCode}
-              onChangeText={changeItemCode}
-              style={styles.inputEditProduct}
-              disabled
+        <Layout
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          >
+
+          <View style={styles.containerEditProducto}>
+            <Input 
+                label="Item Code"
+                placeholder="Item Code"
+                value={selecteditemCode}
+                onChangeText={changeItemCode}
+                style={styles.inputEditProduct}
+                disabled
+                
+              />
+              <Input
+                label="Item Name"
+                placeholder="Item Name"
+                value={selecteditemName}
+                onChangeText={setItemName}
+                style={styles.inputEditProduct}
+              />
+              <Input
+                label="Description"
+                placeholder="Description"
+                value={selecteditemDescription}
+                onChangeText={setItemDescription}
+                style={styles.inputEditProduct}
+              />
+              <Input
+                label="Rate"
+                placeholder="Rate"
+                value={selecteditemStandardRate}
+                onChangeText={setSelectedItemStandardRate}
+                style={styles.inputEditProduct}
+              />
+                
+
+              </View>
               
-            />
-            <Input
-              label="Item Name"
-              placeholder="Item Name"
-              value={selecteditemName}
-              onChangeText={setItemName}
-              style={styles.inputEditProduct}
-            />
-            <Input
-              label="Description"
-              placeholder="Description"
-              value={selecteditemDescription}
-              onChangeText={setItemDescription}
-              style={styles.inputEditProduct}
-            />
-            <Input
-              label="Rate"
-              placeholder="Rate"
-              value={selecteditemStandardRate}
-              onChangeText={setSelectedItemStandardRate}
-              style={styles.inputEditProduct}
-            />
-              
 
-            </View>
-            
+            <View style={styles.buttonContainer}>
+                <Button 
+                  style={styles.button} 
+                  size="tiny"  
+                  onPress={() => {
 
-          <View style={styles.buttonContainer}>
-              <Button 
-                style={styles.button} 
-                size="tiny"  
-                onPress={() => {
+                    setsearchItemCode('');
+                    editProduct();
+                    //seteditProducto(false)
 
-                  setsearchItemCode('');
-                  editProduct();
-                  //seteditProducto(false)
+                  }}
+                >
+                  Update Service
+                </Button>
+                <Button 
+                  style={styles.button} 
+                  size="tiny"  
+                  onPress={() => {
+                    setItemCode('');
+                    setItemDescription('');
+                    setItemName('');
+                    setitemStandardRate('');
 
-                }}
-              >
-                Update Service
-              </Button>
-              <Button 
-                style={styles.button} 
-                size="tiny"  
-                onPress={() => {
-                  setItemCode('');
-                  setItemDescription('');
-                  setItemName('');
-                  setitemStandardRate('');
+                    setsearchItemCode('');
+                    seteditProducto(false)
+                  }}
+                >
+                  Dimiss
+                </Button>
+              </View>
 
-                  setsearchItemCode('');
-                  seteditProducto(false)
-                }}
-              >
-                Dimiss
-              </Button>
-            </View>
-
-        </Layout>
+          </Layout>
+        </ScrollView>
       }      
     </SafeAreaView>
   );

@@ -15,3 +15,19 @@ React Native + Expo Starter template to build apps backed by Frappe
 ## How to use?
 
 Build With Hussain Episode 8: [Livestream](https://www.youtube.com/live/vsiHC8aZid0?feature=share)
+
+
+### App being adaptted for TeorLogico (AngolaERP / MetaGest)
+Will run firstly Facturas Facil
+    - Generate Invoices
+    - Generate Customers
+    - Services and Products with no Stock
+
+### TODO
+    - Allow to select the SITE
+        Inicial version will be only for facturas-facil.angolaerp.co.ao
+    - Authentication like in home.Producs to refresh TOKEN for the others SCREENS
+
+    - Customers
+        Edit Customer   DONE
+        Address to SAVE

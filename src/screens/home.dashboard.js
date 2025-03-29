@@ -1,6 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useContext, useEffect } from "react";
+import { AuthContext } from "../provider/auth";
+
 import { SafeAreaView, View, Dimensions, StyleSheet } from "react-native";
-import { Button, Layout, Modal, Card, Text } from "@ui-kitten/components";
+import { Spinner, Button, Layout, Modal, Card, Text } from "@ui-kitten/components";
 import Form from "../components/form.component";
 import { useFrappe } from "../provider/backend";
 import styled from "styled-components/native";
@@ -28,109 +30,150 @@ const HomeScreenContainer = styled(Layout)`
  padding-right: 30px;
 `
 
-
-const HomeDashboard_d = ({ item }) => {
-  //This will be the main Screen
-  const formatarMoeda = new Intl.NumberFormat();
-  return (
-    <Card key={item.name} style={{ width: "100%", marginBottom: 20 }}>
-      <Text style={{ fontSize: 10 }}>{format(item.posting_date,"dd-MM-yyyy")} - {item.doc_agt} - {item.customer}</Text>
-      <Text category="h6" style={{ fontSize: 12, color: 'red' }}>{formatarMoeda.format(item.outstanding_amount)}</Text>
-
-      <Button onPress={() => {
-        console.log('pressed');
-        Linking.openURL(`${BASE_URI}/app/sales-invoice/${item.name}`)
-      }} appearance="ghost"> Abrir</Button>
-      <Layout style={{ marginVertical: 2 }}></Layout>      
-    </Card>
-  );
-};
-
-
 export const HomeDashboard = () => {
-  <Layout
-    style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
-  >
-    <Text category="h1"> FATURAS</Text>
-  </Layout>
-
-  const {db} = useFrappe();
+  // 1. First: Always call hooks at the top level
+  //const { accessToken, refreshAccessTokenAsync, isAuthenticated } = useContext(AuthContext);
+  const { refreshAccessTokenAsync, isAuthenticated, logout, userInfo, accessToken, fetchUserInfo } = useContext(AuthContext);    
+  const { db } = useFrappe();
+  
+  // 2. State hooks next
+  const [isLoading, setIsLoading] = React.useState(true);
   const [numerodeFacturas, setNumerodeFacturas] = React.useState(null);
   const [numerofacturasUnpaid, setNumeroFacturasUnpaid] = React.useState(null);
   const [numeroCustomers, setNumeroCustomers] = React.useState(null);
-
   const [listaFacturas, setListaFacturas] = React.useState([]);
+  
+  // 3. Derived values
   const dateHoje = new Date();
-  //const formatarMoeda = new Intl.NumberFormat();
 
+  // 4. Effects
   useEffect(() => {
-    db.getCount('Sales Invoice').then((count) => {
-      console.log('conta ', count)
-      console.log('Data hoje ', `${dateHoje.getFullYear()}-${dateHoje.getMonth()+1}-${dateHoje.getDate()}`)
-      setNumerodeFacturas(count)
-    })
+    if (!isAuthenticated || !db) {
+      setIsLoading(false);
+      return;
+    }
 
-    //Facturas nao Pagas
-    const filters = [['status', '!=', 'Paid']];
-    const useCache = true; /** Default is false - Optional **/
-    const debug = false; /** Default is false - Optional **/
-    
-    db.getCount('Sales Invoice', filters, useCache, debug)
-      .then((count) => {
-        console.log(count)
-        setNumeroFacturasUnpaid(count)
-      })
-      .catch((error) => console.error(error));
+    let isMounted = true; // Add cleanup flag
 
-      //Numero de Clientes
-      const custfilters = [['disabled', '!=', 1]];
-      //const useCache = true; /** Default is false - Optional **/
-      //const debug = false; /** Default is false - Optional **/
-      
-      db.getCount('Customer', custfilters, useCache, debug)
-        .then((count) => {
-          console.log(count)
-          setNumeroCustomers(count)
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+
+/*
+        //Get from contarfacturas
+        const searchParams0 = {
+          usename: userInfo.email,
+        };
+
+        call
+        .get('angola_erp.api.invoices.contarFacturas', searchParams0)
+        .then((result) => {
+          console.log('**** CONTAGEM FACTURAs..... ')
+          //console.log(result.message)
+          console.log('USER ',userInfo.email)
+          console.log(result.message[0])
+          const streams = result.message
+          count =streams;
         })
-        .catch((error) => console.error(error));
-    
+        .catch((error) => {
+          console.error(error)
+        });
 
-      //Facturas Por Mes
-      const factfilters = [['disabled', '!=', 1]];
+        //Get from all_invoices
+        const searchParams = {
+          usename: userInfo.email,
+          statusfactura: ['Unpaid','Overdue']
+        };            
 
-        //TO ADD on aoerp_factura_facil as API
-        /*
-        SELECT 
-        MONTH(posting_date) AS month_number,
-        DATE_FORMAT(posting_date, '%M') AS month_name,
-        COUNT(*) AS invoice_count,
-        COALESCE(SUM(grand_total), 0) AS total_sales_amount
-    FROM 
-        `tabSales Invoice`
-    WHERE 
-        YEAR(posting_date) = YEAR(CURDATE())
-    GROUP BY 
-        month_number, month_name
-    ORDER BY 
-        month_number;            
-        */
+        console.log('Search PARAM')
+        console.log(searchParams)
 
-  }, [db])
+        call
+        .get('angola_erp.api.invoices.all_invoices', searchParams)
+        .then((result) => {
+          console.log('**** LISTA DE FACTURAs..... ')
+          //console.log(result.message)
+          console.log('USER ',userInfo.email)
+          console.log(result.message[0])
+          const streams = result.message
+          unpaidCount = streams;
 
+        })
+        .catch((error) => {
+          console.error(error)
+        });
+
+*/
+        
+        const [count,unpaidCount,customerCount] = await Promise.all([
+          db.getCount('Sales Invoice'),
+          db.getCount('Sales Invoice', [['status', '!=', 'Paid']]),
+          db.getCount('Customer', [['disabled', '!=', 1]])
+        ]);
+        
+        if (isMounted) {
+          setNumerodeFacturas(count);
+          setNumeroFacturasUnpaid(unpaidCount);
+          setNumeroCustomers(customerCount);
+        }
+      } catch (e) {
+        if (isMounted) {
+          if (e.httpStatus === 403 || e.httpStatus === 401) {
+            await refreshAccessTokenAsync();
+          } else {
+            Toast.show({
+              type: "error",
+              position: 'top',
+              text1: 'Error',
+              text2: e.message
+            });
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false; // Cleanup function
+    };
+  }, [accessToken, db, isAuthenticated, refreshAccessTokenAsync]);
+
+  // 5. Early returns after all hooks
+  if (!isAuthenticated) {
+    return (
+      <Layout style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text category="h6">Please log in to view the dashboard</Text>
+      </Layout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Layout style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Spinner size='giant' />
+        <Text style={{ marginTop: 10 }}>Loading dashboard data...</Text>
+      </Layout>
+    );
+  }
+
+  // 6. Main component render
   return (
-    //TODO: Check Month to show 6 Months behinde
     <SafeAreaView style={{ flex: 1 }}>
-        <Card>
-          <Layout style={{ marginVertical: 10 }}></Layout>
-          <Layout style={{ width: "100%", height: "50%" }}>
+      <Card>
+        <Layout style={{ marginVertical: 10 }}></Layout>
+        <Layout style={{ width: "100%", height: "50%" }}>
           <Card status="success">
-          <View>
-          <Text category="h6"> Grafico de FActuras</Text>
-            <LineChart
-              data={{
-                labels: ["January", "February", "March", "April", "May", "June"],
-                datasets: [
-                  {
+            <View>
+              <Text category="h6"> Grafico de FActuras</Text>
+              <LineChart
+                data={{
+                  labels: ["January", "February", "March", "April", "May", "June"],
+                  datasets: [{
                     data: [
                       Math.random() * 100,
                       Math.random() * 100,
@@ -139,45 +182,36 @@ export const HomeDashboard = () => {
                       Math.random() * 100,
                       Math.random() * 100
                     ]
+                  }]
+                }}
+                width={Dimensions.get("window").width}
+                height={220}
+                yAxisLabel="$"
+                yAxisSuffix="k"
+                yAxisInterval={1}
+                chartConfig={{
+                  backgroundColor: "#e26a00",
+                  backgroundGradientFrom: "#fb8c00",
+                  backgroundGradientTo: "#ffa726",
+                  decimalPlaces: 2,
+                  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  style: { borderRadius: 16 },
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: "#ffa726"
                   }
-                ]
-              }}
-              width={Dimensions.get("window").width} // from react-native
-              height={220}
-              yAxisLabel="$"
-              yAxisSuffix="k"
-              yAxisInterval={1} // optional, defaults to 1
-              chartConfig={{
-                backgroundColor: "#e26a00",
-                backgroundGradientFrom: "#fb8c00",
-                backgroundGradientTo: "#ffa726",
-                decimalPlaces: 2, // optional, defaults to 2dp
-                color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                style: {
-                  borderRadius: 16
-                },
-                propsForDots: {
-                  r: "6",
-                  strokeWidth: "2",
-                  stroke: "#ffa726"
-                }
-              }}
-              bezier
-              style={{
-                marginVertical: 8,
-                borderRadius: 16
-              }}
-            />
-          </View>
-
+                }}
+                bezier
+                style={{ marginVertical: 8, borderRadius: 16 }}
+              />
+            </View>
           </Card>
-
-          </Layout>
-
-        </Card>      
+        </Layout>
+      </Card>
+      
       <HomeScreenContainer>
-
         <Card status="success">
           <Text category="h6">Total de Facturas: {numerodeFacturas} </Text>
         </Card>
@@ -189,14 +223,7 @@ export const HomeDashboard = () => {
         <Card status="info">
           <Text category="h6">Numero de Clientes: {numeroCustomers} </Text>
         </Card>
-
-
-
-
-
-
       </HomeScreenContainer>
     </SafeAreaView>
   );
 };
-

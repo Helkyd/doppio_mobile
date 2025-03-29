@@ -1,9 +1,7 @@
 //import React from "react";
-import React, { useContext, useEffect } from "react";
-import { AuthContext } from "../provider/auth";
-
+import React, { useEffect } from "react";
 //import { SafeAreaView, StyleSheet } from "react-native";
-import { ScrollView, SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
+import { SafeAreaView, View, FlatList, TextInput, StyleSheet } from 'react-native';
 import { Input, Button, Layout, Modal, Card, Text, Spinner, Icon, IconElement } from "@ui-kitten/components";
 
 import Form from "../components/form.component";
@@ -27,7 +25,6 @@ export const HomeCustomer = () => {
     setCriarCliente(true);
   };
 
-  const { accessToken, refreshAccessTokenAsync } = useContext(AuthContext);
   const [visible, setVisible] = React.useState(false);
   const [criarCliente, setCriarCliente] = React.useState(false);
 
@@ -94,19 +91,7 @@ export const HomeCustomer = () => {
           setListaCustomers(streams)
   
         })
-        .catch(async (e) => {
-          if (e.httpStatus === 403 || e.httpStatus === 401) {
-            await refreshAccessTokenAsync();
-          } else {
-            console.error(e);
-            Toast.show({
-              type: "error",
-              position: 'top',
-              text1: 'Error',
-              text2: e.message
-            });
-          }
-        })
+        .catch((error) => console.error(error));
   
   
         console.log('FACTURAS aaaa ')
@@ -117,72 +102,122 @@ export const HomeCustomer = () => {
   };
 
   const createCustomer = async () => {
-    // Validate inputs
-    if (email && !validate(email)) return;
-    if (phoneNumber && !validate_phones(phoneNumber)) return;
+    console.log('Create Customer... ');
+    console.log('customname ', customerName);
+    console.log('tax id ', customerTaxID);
+    console.log('Email ', email);
+    if (email && validate(email)) {
+      console.log('EMAIL VALIDO');
+    } else if (email) {
+      console.log("EMAIL INVALIDO")
+      console.error("EMAIL INVALIDO");
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'EMAIL INVALIDO',
+        text2: 'Volte a Digitar o Email'
+      });
+
+      return
+    }
+
+    if (phoneNumber && validate_phones(phoneNumber)) {
+      console.log('Phone Number VALIDO');
+    } else if (phoneNumber) {
+      console.log("Phone Number INVALIDO")
+      console.error("Phone Number INVALIDO");
+      Toast.show({
+        type: 'error',
+        position: 'top',
+        text1: 'Phone Number INVALIDO',
+        text2: 'Volte a Digitar o Phone Number'
+      });
+
+      return
+
+    }
+
+    //Check if Exists first and after Save REcords
+    db.getDocList('Customer', {
+      /** Fields to be fetched */
+      fields: ['name', 'customer_name','tax_id'],
+      /** Filters to be applied - SQL AND operation */
+      filters: [['tax_id', '=', customerTaxID]],
+      /** Filters to be applied - SQL OR operation */
+      asDict: false,
+    })
+      .then((docs) => {
+        console.log(docs)
+        console.log(docs == [])
+        console.log(docs == null)
+        console.log(docs.length)
+
+
+        if (docs.length === 0) {
+          console.log('CLIENTE NAO EXISTE PODE CRIAR...');
+          //CREATE
+          db.createDoc('Customer', {
+            customer_name: customerName,
+            tax_id: customerTaxID,
+            email: email,
+            phonenumber: phoneNumber,
+          })
+            .then((doc) => {
+              console.log(doc)
+              //TODO: ONCE Saved... Clear Fields and return to CUSTOMER LIST
+              setCustomerName('');
+              setCustomerTaxID('');
+              setCustomerAddress('');
+              setEmail('');
+              setPhoneNumber('');
+              setSearchNIF('');
+              setCriarCliente(false)
   
-    if (customerName) {
-      // This is an update operation
-      db.updateDoc('Customer', customerName, {
-        customer_name: customerName,
-        tax_id: customerTaxID,
-        email: email,
-        phonenumber: phoneNumber,
-      })
-      .then((doc) => {
-        console.log('Customer updated:', doc);
-        Toast.show({
-          type: 'success',
-          position: 'top',
-          text1: 'Success',
-          text2: 'Customer updated successfully'
-        });
-        resetForm();
-        fetchCustomers(); // Refresh the list
-      })
-      .catch(async (error) => {
-        if (error.httpStatus === 403 || error.httpStatus === 401) {
-          await refreshAccessTokenAsync();
+            })
+            .catch((error) => console.error(error));
+
+          //TODO: API on aoerp_tools that will save the Customer with Company and Address
+
+          
+
         } else {
-          console.error(error);
+          console.log('CUSTOMER ALREADY EXISTE.....')
           Toast.show({
             type: 'error',
             position: 'top',
-            text1: 'Error',
-            text2: 'Failed to update customer'
+            text1: 'O Cliente ja Existe.',
+            text2: 'Este Cliente ja Existe no Sistema'
           });
   
         }
+
+  
+      })
+      .catch((error) => {
+        console.error(error)
+        console.log('CREATE THE CUSTOMER...')
       });
-    } else {
-      // This is a create operation
-      // ... (keep your existing create logic)
+
+
+    /*
+
+    try {
+      await axios.post(API_URL, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },        
+        customer_name: customerName,
+        email: email,
+        phonenumber: phoneNumber,
+        tax_id: customerTaxID,
+      });
+      fetchCustomers(); // Refresh the list
+    } catch (error) {
+      console.error(error);
     }
+    */
   };
 
-  const editCustomer = (customer) => {
-    // Set the form data with the customer's information
-    setCustomerName(customer.customer_name);
-    setCustomerTaxID(customer.tax_id || '');
-    setEmail(customer.email || '');
-    setPhoneNumber(customer.phonenumber || '');
-    
-    // Set the customer name to identify this is an edit operation
-    setCustomerName(customer.name);
-    
-    // Open the create customer form in edit mode
-    setCriarCliente(true);
-  };
-
-  const resetForm = () => {
-    setCustomerName('');
-    setCustomerTaxID('');
-    setCustomerAddress('');
-    setEmail('');
-    setPhoneNumber('');
-    setSearchNIF('');
-    setCriarCliente(false);
-  };
 
   useEffect(() => {
     fetchCustomers();
@@ -261,20 +296,8 @@ export const HomeCustomer = () => {
         setListaCustomers(streams)
   
       })
-      .catch(async (e) => {
-        if (e.httpStatus === 403 || e.httpStatus === 401) {
-          await refreshAccessTokenAsync();
-        } else {
-          console.error(e);
-          Toast.show({
-            type: "error",
-            position: 'top',
-            text1: 'Error',
-            text2: e.message
-          });
-        }
-      })
-
+      .catch((error) => console.error(error));
+  
   
 
       const searchParams = {
@@ -306,8 +329,7 @@ export const HomeCustomer = () => {
   useEffect(() => {
     console.log('customerName updated:', customerName);
     console.log('listaCustomers updated:', listaCustomers);
-
-  }, [accessToken, db, customerName,listaCustomers]);
+  }, [customerName,listaCustomers]);
 
   //NEW FORM
   function handleSubmit(e) {
@@ -441,112 +463,88 @@ export const HomeCustomer = () => {
           keyExtractor={(item) => item.name}
           renderItem={({ item }) => (
             <View style={styles.item}>
-              <Text>{item.customer_name}</Text>
+              <Text>Customer {item.customer_name}</Text>
               {item.tax_id != null && <Text>NIF: {item.tax_id}</Text>}
               {item.email != null && item.email != '' && <Text>@: {item.email}</Text>}
               {item.phonenumber != null && item.phonenumber != '' && <Text>Telef. {item.phonenumber}</Text>}
               <Layout style={{ marginVertical: 5 }}></Layout>
-              <View style={styles.buttonContainer}>
-                <Button 
-                  size="tiny" 
-                  onPress={() => editCustomer(item)}
-                  appearance="ghost"
-                  status="info"
-                >
-                  Edit
-                </Button>
-              </View>
             </View>
           )}
-        />
-
+        />        
       </Layout>
     </Layout> }
-    {/* Replace your existing criarCliente == true section with this */}
-    {criarCliente == true && 
-      <Layout style={{ flex: 1 }}>
-        <ScrollView 
-          contentContainerStyle={styles.scrollContainer}
-          keyboardShouldPersistTaps="handled"
+      {criarCliente == true && 
+      <Layout
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
         >
-          <View style={styles.formContainer}>
-            <Input
-              label='NIF Empresa/Indivual'
-              value={searchNIF}
-              onSubmitEditing={() => {
-                console.log('NIF VALIDATE.... ',searchNIF);
-                if (searchNIF.length >= 10){
-                  validarNIF(searchNIF);  
-                } else {
-                  Toast.show({
-                    type: 'error',
-                    position: 'top',
-                    text1: 'NIF INVALIDO',
-                    text2: 'Volte da Digitar'
-                  });
-                }
-              }}
-              onChangeText={(nextValue) => setSearchNIF(nextValue)}
-              placeholder="Procurar NIF ?"
-              style={{ marginBottom: 20 }}
-            />
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Customer Name</Text>
+        <View style={styles.containerNewCustomer}>
+
+          <Input
+            label='NIF Empresa/Indivual'
+            value={searchNIF}
+            onSubmitEditing={() => {
+              console.log('NIF VALIDATE.... ',searchNIF);
+              if (searchNIF.length >= 10){
+                validarNIF(searchNIF);  
+              } else {
+                Toast.show({
+                  type: 'error',
+                  position: 'top',
+                  text1: 'NIF INVALIDO',
+                  text2: 'Volte da Digitar'
+                });
+    
+              }
+            }}
+            onChangeText={(nextValue) => setSearchNIF(nextValue)}
+            placeholder="Procurar NIF ?"
+            style={{ marginBottom: 50, width:200 }}
+          />
+
               <TextInput
+
                 placeholder="Customer Name"
                 value={customerName}
                 onChangeText={setCustomerName}
                 style={styles.input}
                 readOnly
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>NIF</Text>
               <TextInput
-                placeholder="NIF"
+                placeholder="Nif"
                 value={customerTaxID}
                 onChangeText={setCustomerTaxID}
                 style={styles.input}
                 readOnly
               />
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
               <TextInput
                 placeholder="Email"
                 value={email}
                 onChangeText={setEmail}
+                //onChangeText={(setEmail) => validate(setEmail)}
                 style={styles.input}
-                keyboardType="email-address"
-              />
-            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number</Text>
+              />
               <TextInput
                 placeholder="Phone Number"
                 value={phoneNumber}
                 onChangeText={setPhoneNumber}
                 style={styles.input}
-                keyboardType="phone-pad"
               />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Address</Text>
               <TextInput
                 placeholder="Type Address"
                 value={customerAddress}
-                onChangeText={setCustomerAddress}
+                onChange={setCustomerAddress}
                 style={styles.input}
-                multiline
               />
-            </View>
 
-            <View style={styles.buttonContainer}>
+              
+
+            </View>
+            
+
+          <View style={styles.buttonContainer}>
               <Button 
                 style={styles.button} 
                 size="tiny"  
@@ -557,16 +555,22 @@ export const HomeCustomer = () => {
               <Button 
                 style={styles.button} 
                 size="tiny"  
-                onPress={resetForm}
+                onPress={() => {
+                  setCustomerName('');
+                  setCustomerTaxID('');
+                  setCustomerAddress('');
+                  setEmail('');
+                  setPhoneNumber('');
+                  setSearchNIF('');
+                  setCriarCliente(false)
+                }}
               >
-                Dismiss
+                Dimiss
               </Button>
             </View>
-          </View>
-        </ScrollView>
-      </Layout>
-    }
 
+        </Layout>
+      }
     </SafeAreaView>
   );
 };
@@ -618,79 +622,4 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
 
-  item: { 
-    padding: 16, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#ccc',
-    marginBottom: 8,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },  
-
-  formContainer: {
-    width: '90%',
-    padding: 16,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-
-  inputReadOnly: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#f5f5f5',
-    color: '#666',
-  },
-
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 16,
-    paddingBottom: 50, // Extra space at bottom
-  },
-  formContainer: {
-    width: '100%',
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-    marginBottom: 40, // Ensure space below buttons
-  },  
 });

@@ -1,6 +1,4 @@
-import React, { useContext, useEffect } from "react";
-import { AuthContext } from "../provider/auth";
-
+import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, ScrollView, TextInput, SafeAreaView } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Card, Button, Layout, Tab, TabView } from '@ui-kitten/components';
@@ -41,29 +39,26 @@ const UnpaidFacturas = ({ item }) => {
 
 export const HomeFacturas = ()  => {
 
-  //const { accessToken, refreshAccessTokenAsync } = useContext(AuthContext);
-  const { refreshAccessTokenAsync, isAuthenticated, logout, userInfo, accessToken, fetchUserInfo } = useContext(AuthContext);  
-
   // Then, add state for the selected tab index
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const [draftInvoices, setDraftInvoices] = React.useState([]);
 
-  const [criarFactura, setCriarFactura] = React.useState(false);
-  const [numerodeFacturas, setNumerodeFacturas] = React.useState(0);
-  const [listaFacturas, setListaFacturas] = React.useState([]);
-  const [visible, setVisible] = React.useState(false);
+  const [criarFactura, setCriarFactura] = useState(false);
+  const [numerodeFacturas, setNumerodeFacturas] = useState(0);
+  const [listaFacturas, setListaFacturas] = useState([]);
+  const [visible, setVisible] = useState(false);
   const [onSubmit, setonSubmit] = React.useState(false);
 
   const [customerOptions, setcustomerOptions] = React.useState([]);
   const [itemOptions, setitemOptions] = React.useState([]);
   
-  const { db, call } = useFrappe();
+  const {db} = useFrappe();
   const dateHoje = new Date();
 
   //const [datePickerOpen, setDatePickerOpen] = useState(false);  
   //const [date, setDate] = useState(new Date());
   //const [datePickerVisible, setDatePickerVisible] = useState(false);
-  const [showDatePicker, setShowDatePicker] = React.useState(false);  
+  const [showDatePicker, setShowDatePicker] = useState(false);  
 
   // Helper function to parse date strings in dd-MM-yyyy format
   const parseCustomDate = (dateString) => {
@@ -127,15 +122,12 @@ export const HomeFacturas = ()  => {
   };
 
   // Form data state
-  const [formData, setFormData] = React.useState({
-    name: '',
-    doc_agt: '',
+  const [formData, setFormData] = useState({
     customer_name: '',
     posting_date: formatDate(new Date()), //new Date().toISOString().split('T')[0],
     posting_time: new Date().toTimeString().substring(0, 5),
     due_date: formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // Initialize with +30 days
     company: '',
-    status: '',
     items: [{
       item_code: '',
       item_name: '',
@@ -173,8 +165,6 @@ export const HomeFacturas = ()  => {
   const openModal = () => {
     const today = new Date();
     setFormData({
-      name: '',
-      doc_agt: '',
       customer_name: '',
       //posting_date: new Date().toISOString().split('T')[0],
       //posting_date: formatDate(new Date()), // Use formatted date
@@ -183,7 +173,6 @@ export const HomeFacturas = ()  => {
       posting_time: today.toTimeString().substring(0, 5),      
       due_date: formatDate(new Date(today.setDate(today.getDate() + 30))),
       company: '',
-      status: '',
       items: [{
         item_code: '', //itemOptions[0].code,
         item_name: '', //itemOptions[0].name,
@@ -274,6 +263,11 @@ export const HomeFacturas = ()  => {
   };
 
   const old_handleSubmit = () => {
+    console.log('Form submitted:', formData);
+    setVisible(false);
+    setCriarFactura(false);
+  };
+  const handleSubmit = () => {
     // Validate that all items have item_code selected
     const hasEmptyItemCode = formData.items.some(item => !item.item_code);
     
@@ -344,141 +338,6 @@ export const HomeFacturas = ()  => {
 
   };
 
-  const handleSubmit = () => {
-    // Validate form
-    const hasEmptyItemCode = formData.items.some(item => !item.item_code);
-    if (hasEmptyItemCode) {
-      alert('Please select an item code for all items');
-      return;
-    }
-    if (!formData.customer_name) {
-      alert('Please select a customer');
-      return;
-    }
-  
-    // Format dates
-    const formatToBackendDate = (dateString) => {
-      if (!dateString) return '';
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-      const [day, month, year] = dateString.split('-');
-      return `${year}-${month}-${day}`;
-    };
-  
-    const postingDate = formatToBackendDate(formData.posting_date);
-    const dueDate = formatToBackendDate(formData.due_date);
-  
-    // Prepare items
-    const tabelaItens = formData.items.map(item => ({
-      item_code: item.item_code || item.name,
-      item_name: item.item_name,
-      description: item.description,
-      rate: item.price,
-      uom: item.stock_uom,
-      qty: item.qtd
-    }));
-  
-    // Check if we're editing an existing invoice
-    const isEdit = formData.name; // Assuming we set this when editing
-
-    console.log('SUBMIT OU DRAFT ', formData.status)
-  
-    const invoiceData = {
-      name: formData.name || '',
-      doc_agt: formData.doc_agt || '',
-      customer: formData.customer_name,
-      company: 'Para Testes',
-      posting_date: postingDate,
-      posting_time: formData.posting_time,
-      due_date: dueDate,
-      update_stock: 0,
-      items: tabelaItens,
-      //status: formData.status == null ? 'Draft':'Unpaid',
-      //submit_on_creation: formData.status == 'Draft' ? 1:0,
-      status: formData.status || 'Draft', // Default to 'Draft' if status is not set
-      submit_on_creation: formData.status === 'Draft' ? 1 : 0, // Explicit comparison
-    };
-  
-    console.log('invoidata ', invoiceData)
-    console.log('form DATA ', formData)
-    console.log('ISEDIT ', isEdit)
-
-    if (isEdit) {
-      // Update existing invoice
-      db.updateDoc('Sales Invoice', formData.name, invoiceData)
-        .then(() => {
-          console.log('Invoice updated');
-          //SUBMIT if DRAFT... 
-          console.log('Status FACT ', formData.status )
-          if (invoiceData.submit_on_creation == 1) {
-            const searchParams = {
-              invoice_name: formData.name,
-            };            
-            call
-            .get('angola_erp.api.invoices.submeter_invoices', searchParams)
-            .then((result) => {
-              console.log('**** FACTURA SUMETIDA..... ')
-              console.log(result)
-              setVisible(false);
-              setCriarFactura(false);
-              // Refresh the draft invoices list
-              fetchDraftInvoices();
-        
-            })
-            .catch((error) => {
-              console.error(error)
-            });
-  
-          } else {
-            setVisible(false);
-            setCriarFactura(false);
-            // Refresh the draft invoices list
-            fetchDraftInvoices();
-  
-          }
-        })
-        .catch(error => console.error(error));
-    } else {
-      // Create new invoice
-      db.createDoc('Sales Invoice', invoiceData)
-        .then((doc) => {
-          console.log('Invoice created');
-          //Draft stay on the Form for SUBMIT
-          if (invoiceData.status == "Draft" || invoiceData.status == null) {
-            console.log('REFREShhhh');
-            editDraftInvoice();
-          } else {
-            setVisible(false);
-            setCriarFactura(false);
-            fetchDraftInvoices();
-  
-          }
-        })
-        .catch(error => console.error(error));
-    }
-  };
-
-  const fetchDraftInvoices = () => {
-    db.getDocList('Sales Invoice', {
-      fields: ["name","doc_agt","posting_date","customer","outstanding_amount","rounded_total","status"],
-      filters: [['posting_date','<=', `${dateHoje.getFullYear()}-${dateHoje.getMonth()+1}-${dateHoje.getDate()}`],['status','=','Draft'],['naming_series','like','FT%']],
-      orderBy: {
-        field: "posting_date",
-        order: 'desc',
-      },
-    }).then((data) => {
-      setDraftInvoices(data);
-    })
-    .catch(async (error) => {
-      if (error.httpStatus === 403 || error.httpStatus === 401) {
-        await refreshAccessTokenAsync();
-      } else {
-        console.error('Error fetching fetchDraftInvoices:', error);
-        alert('Failed to load fetchDraftInvoices for editing');
-      }
-    });
-
-  };
-
   const isFormValid = () => {
     return (
       formData.customer_name && 
@@ -539,7 +398,7 @@ export const HomeFacturas = ()  => {
       color: '#333',
     },
     inputGroup: {
-      marginBottom: 5,
+      marginBottom: 15,
     },
     label: {
       marginBottom: 5,
@@ -575,11 +434,10 @@ export const HomeFacturas = ()  => {
     },
     addButton: {
       backgroundColor: '#4CAF50',
-      padding: 5,
+      padding: 12,
       borderRadius: 5,
       alignItems: 'center',
       marginBottom: 20,
-      marginTop: -10,
     },
     addButtonText: {
       color: '#fff',
@@ -599,8 +457,7 @@ export const HomeFacturas = ()  => {
     buttonContainer: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: -10,
-      marginBottom: 20,
+      marginTop: 1,
     },
     cancelButton: {
       backgroundColor: '#f44336',
@@ -675,40 +532,16 @@ export const HomeFacturas = ()  => {
 
 
   useEffect(() => {
-    console.log('use effect');
-    /*
     db.getCount('Sales Invoice').then((count) => {
       console.log('conta ', count)
       console.log('Data hoje ', `${dateHoje.getFullYear()}-${dateHoje.getMonth()+1}-${dateHoje.getDate()}`)
       setNumerodeFacturas(count)
     })
-    */
 
-    //Get from contarfacturas
-    const searchParams0 = {
-      usename: userInfo.email,
-    };            
-
-
-    call
-    .get('angola_erp.api.invoices.contarFacturas', searchParams0)
-    .then((result) => {
-      console.log('**** CONTAGEM DE FACTURAs..... ')
-      //console.log(result.message)
-      console.log('USER ',userInfo.email)
-      console.log(result.message)
-      const streams = result.message
-      setNumerodeFacturas(streams)
-    })
-    .catch((error) => {
-      console.error(error)
-    });
-
-    
-/*
     db.getDocList('Sales Invoice', {
       fields: ["name","doc_agt","posting_date","customer","outstanding_amount","rounded_total","status"],
-      filters: [['status','=',['Unpaid','Overdue']],['doc_agt','!=',""]],
+      filters: [['posting_date','<=', `${dateHoje.getFullYear()}-${dateHoje.getMonth()+1}-${dateHoje.getDate()}`],['status','!=','Paid'],['doc_agt','!=',""],['naming_series','like','FT%']],
+      limit_start: 5,
       orderBy: {
         field: "posting_date",
         order: 'desc',
@@ -720,49 +553,11 @@ export const HomeFacturas = ()  => {
       console.log('factura1 ', streams[0])
       console.log('Data hoje ', dateHoje.getDate())
     })
-*/
-
-    //Get from all_invoices
-    const searchParams = {
-      usename: userInfo.email,
-      statusfactura: ['Unpaid','Overdue']
-    };            
-
-    console.log('Search PARAM')
-    console.log(searchParams)
-
-    call
-    .get('angola_erp.api.invoices.all_invoices', searchParams)
-    .then((result) => {
-      console.log('**** LISTA DE FACTURAs..... ')
-      //console.log(result.message)
-      console.log('USER ',userInfo.email)
-      console.log(result.message[0])
-      console.log('tamanhpo ',result.message.length);
-      console.log(typeof(result.message))
-      const streams = result.message
-      //setListaFacturas(streams)
-
-      const sortedData = streams.sort((a, b) => {
-        return new Date(b.posting_date) - new Date(a.posting_date);
-      });
-  
-      // Sort by posting_date in descending order (newest first)
-      const sorted = [...streams].sort((a, b) => {
-        return new Date(b.posting_date) - new Date(a.posting_date);
-      });      
-
-      setListaFacturas(sorted)
-    })
-    .catch((error) => {
-      console.error(error)
-    });
-
 
     // Add this to fetch draft invoices
     db.getDocList('Sales Invoice', {
       fields: ["name","doc_agt","posting_date","customer","outstanding_amount","rounded_total","status"],
-      filters: [['status','=','Draft']],
+      filters: [['posting_date','<=', `${dateHoje.getFullYear()}-${dateHoje.getMonth()+1}-${dateHoje.getDate()}`],['status','=','Draft'],['naming_series','like','FT%']],
       orderBy: {
         field: "posting_date",
         order: 'desc',
@@ -782,8 +577,17 @@ export const HomeFacturas = ()  => {
         order: 'desc',
       },
     }).then((data) => {
-      //console.log('Customers data:', data);
+      console.log('Customers data:', data);
       setcustomerOptions(data);
+      // Initialize formData with first customer if not already set
+      /*
+      if (data.length > 0 && !formData.customer_name) {
+        setFormData(prev => ({
+          ...prev,
+          customer_name: data[0].name
+        }));
+      }
+        */
     })
 
     //{ code: 'ITM001', name: 'Laptop', description: '15" Business Laptop', price: 899.99, uom: 'EA' },
@@ -791,12 +595,14 @@ export const HomeFacturas = ()  => {
     db.getDocList('Item', {
       fields: ["name","item_code","item_name","description","standard_rate","stock_uom"],
       filters: [['disabled','!=',1]],
+      limit_start: 5,
+      limit: 20,
       orderBy: {
         field: "name",
         order: 'desc',
       },
     }).then((data) => {
-      //console.log('ITEMS/PRODS data:', data);
+      console.log('ITEMS/PRODS data:', data);
       const formattedItems = data.map(item => ({
           code: item.item_code || item.name,
           name: item.item_name,
@@ -807,61 +613,38 @@ export const HomeFacturas = ()  => {
         setitemOptions(formattedItems);
     })
 
-    fetchDraftInvoices();
 
-  }, [accessToken,db]);
+
+  }, [db])
 
   // Create a reusable InvoiceList component
-  // Update the InvoiceList component
-  const InvoiceList = ({ data, isDraft = false }) => (
+  const InvoiceList = ({ data }) => (
     <View style={{ width: "100%", height: "100%" }}>
       <FlashList
         data={data}
         renderItem={({ item }) => (
           <Card key={item.name} style={{ width: "100%", marginBottom: 20 }}>
             <Text style={{ fontSize: 10 }}>
-              {item.posting_date ? format(item.posting_date, "dd-MM-yyyy") : ''}
-              {item.posting_date && (item.doc_agt || item.name || item.customer) ? ' - ' : ''}
-              {item.doc_agt || item.name ? (
-                <Text style={{ fontWeight: 'bold' }}>{item.doc_agt || item.name}</Text>
-              ) : null}
-              {(item.doc_agt || item.name) && item.customer ? ' - ' : ''}
-
-              <Text style={{ fontWeight: 'bold' }}>{item.customer}</Text>
+              {item.posting_date ? format(item.posting_date, "dd-MM-yyyy") : ''} - 
+              {item.doc_agt || ''} - 
+              {item.customer || ''}
             </Text>
-
             <Text category="h6" style={{ 
               fontSize: 12, 
               color: item.status === 'Draft' ? 'orange' : 'red' 
             }}>
               {item.outstanding_amount ? new Intl.NumberFormat().format(item.outstanding_amount) : ''}
             </Text>
-            
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Button 
-                onPress={() => {
-                  if (item.name) {
-                    Linking.openURL(`${BASE_URI}/app/sales-invoice/${item.name}`)
-                  }
-                }} 
-                appearance="ghost"
-                style={{ flex: 1, marginRight: 4 }}
-              >
-                Abrir
-              </Button>
-              
-              {isDraft && (
-                <Button 
-                  onPress={() => editDraftInvoice(item)}
-                  appearance="ghost"
-                  status="warning"
-                  style={{ flex: 1, marginLeft: 4 }}
-                >
-                  Editar
-                </Button>
-              )}
-            </View>
-            
+            <Button 
+              onPress={() => {
+                if (item.name) {
+                  Linking.openURL(`${BASE_URI}/app/sales-invoice/${item.name}`)
+                }
+              }} 
+              appearance="ghost"
+            >
+              Abrir
+            </Button>
             <Layout style={{ marginVertical: 2 }}></Layout>      
           </Card>
         )}
@@ -870,50 +653,6 @@ export const HomeFacturas = ()  => {
       />
     </View>
   );
-
-  const editDraftInvoice = (invoice) => {
-    // Fetch the full invoice details including items
-    console.log('edit draft invoice')
-    console.log(invoice)
-    
-    db.getDoc('Sales Invoice', invoice.name)
-      .then((doc) => {
-        // Format the items for the form
-        const items = doc.items.map(item => ({
-          item_code: item.item_code,
-          item_name: item.item_name,
-          description: item.description,
-          price: item.rate,
-          qtd: item.qty.toString(),
-          uom: item.uom,
-          total: (item.rate * item.qty).toFixed(2)
-        }));
-  
-        // Set the form data
-        setFormData({
-          name: doc.name,
-          customer_name: doc.customer,
-          posting_date: format(new Date(doc.posting_date), "dd-MM-yyyy"),
-          posting_time: doc.posting_time,
-          due_date: format(new Date(doc.due_date), "dd-MM-yyyy"),
-          company: doc.company,
-          status: doc.status,
-          items: items
-        });
-  
-        // Open the modal in edit mode
-        setCriarFactura(true);
-        setVisible(true);
-      })
-      .catch(async (error) => {
-        if (error.httpStatus === 403 || error.httpStatus === 401) {
-          await refreshAccessTokenAsync();
-        } else {
-          console.error('Error fetching invoice:', error);
-          alert('Failed to load invoice for editing');
-        }
-      });
-  };  
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
@@ -928,38 +667,39 @@ export const HomeFacturas = ()  => {
 
           {/* // Replace the existing Card component with this TabView implementation */}
           <Layout style={{ marginVertical: 5 }} />
-          <TabView
-            selectedIndex={selectedIndex}
-            onSelect={index => setSelectedIndex(index)}
-          >
-            <Tab title="Facturas por Pagar">
-              <Layout style={{ padding: 8 }}>
-                <Button 
-                  style={styles.button} 
-                  size="tiny"  
-                  onPress={navigateDetails}
-                >
-                  Create Invoice
-                </Button>
-                <Layout style={{ marginVertical: 5 }} />
-                <InvoiceList data={listaFacturas} />
-              </Layout>
-            </Tab>
-            <Tab title="Facturas em Rascunho">
-              <Layout style={{ padding: 8 }}>
-                <Button 
-                  style={styles.button} 
-                  size="tiny"  
-                  onPress={navigateDetails}
-                >
-                  Create Invoice
-                </Button>
-                <Layout style={{ marginVertical: 5 }} />
-                <InvoiceList data={draftInvoices} isDraft={true} />
-              </Layout>
-            </Tab>
-          </TabView>
-
+          <Card>
+            <TabView
+              selectedIndex={selectedIndex}
+              onSelect={index => setSelectedIndex(index)}
+            >
+              <Tab title="Facturas por Pagar">
+                <Layout style={{ padding: 8 }}>
+                  <Button 
+                    style={styles.button} 
+                    size="tiny"  
+                    onPress={navigateDetails}
+                  >
+                    Create Invoice
+                  </Button>
+                  <Layout style={{ marginVertical: 5 }} />
+                  <InvoiceList data={listaFacturas} />
+                </Layout>
+              </Tab>
+              <Tab title="Facturas em Rascunho">
+                <Layout style={{ padding: 8 }}>
+                  <Button 
+                    style={styles.button} 
+                    size="tiny"  
+                    onPress={navigateDetails}
+                  >
+                    Create Invoice
+                  </Button>
+                  <Layout style={{ marginVertical: 5 }} />
+                  <InvoiceList data={draftInvoices} />
+                </Layout>
+              </Tab>
+            </TabView>
+          </Card>
 
           </View>
         )}
@@ -967,28 +707,6 @@ export const HomeFacturas = ()  => {
         <Modal visible={visible} animationType="slide" transparent={false}>
           <ScrollView style={styles.container}>
             <Text style={styles.header}>Sales Invoice</Text>
-            {/* Invoice Name */}
-            {formData.name != null && formData.name &&
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Int. Invoice Number</Text>
-                <TextInput
-                  style={styles.inputGroup}
-                  value={formData.name}
-                  editable={false}
-                />
-              </View>
-            }
-            {/* Doc AGT */}
-            {formData.doc_agt != null && formData.doc_agt &&
-              <View style={styles.inputGroup}>
-                <Text style={styles.label}>Invoice Number</Text>
-                <TextInput
-                  style={styles.inputGroup}
-                  value={formData.doc_agt}
-                  editable={false}
-                />
-              </View>
-            }
             
             {/* Customer Name */}
             <View style={styles.inputGroup}>
@@ -1178,7 +896,7 @@ export const HomeFacturas = ()  => {
                 onPress={handleSubmit}
                 disabled={!isFormValid()}
               >
-                <Text style={styles.buttonText}>{formData.status ? "Submit":"Save"} </Text>
+                <Text style={styles.buttonText}>Submit</Text>
               </TouchableOpacity>
 
             </View>
